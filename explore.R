@@ -31,3 +31,11 @@ length(unique(Extrapolation_depths$GOA_STRATUM)) # 59 strata here
 nrow(unique(strata_list[[s]]["Stratum"])) # 15 strata here
 # Get the points for solution 1 from the big dataframe
 # Need to sample n points from the whole domain for each stratum
+res_df %>% 
+  select(id, sol_1) %>%
+  group_by(sol_1) %>%
+  count()
+
+Extrapolation_depths %>%
+  filter(GOA_STRATUM == 10)
+# ok so there are way more 
