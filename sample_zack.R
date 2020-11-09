@@ -9,20 +9,30 @@ library(RColorBrewer)
 library(tidyverse)
 
 ##################################################
+####   Source helper functions for plotting
+##################################################
+source(here::here("..","HelperFns","lengthen_pal.R"))
+
+##################################################
 ####   Set working directory to the GitHub Repo
 ##################################################
-setwd(here::here("..","Optimal_Allocation_GoA-master"))
+#setwd(here::here("..","Optimal_Allocation_GoA-master"))
 
 ##################################################
 ####   Load Spatial Grid
 ##################################################
-load("data/Extrapolation_depths.RData")
+load(here::here("..","Optimal_Allocation_GoA-master",
+                "data",
+                "Extrapolation_depths.RData"))
 
 ##################################################
 ####   Load Optimization Results
 ##################################################
-load(paste0("model_11/full_domain/Spatiotemporal_Optimization/",
-            "optimization_knitted_results.RData"))
+load(here::here("..","Optimal_Allocation_GoA-master",
+                "model_11",
+                "full_domain",
+                "Spatiotemporal_Optimization",
+                "optimization_knitted_results.RData"))
 
 ##################################################
 ####   Query which solution to used based on the
@@ -30,7 +40,7 @@ load(paste0("model_11/full_domain/Spatiotemporal_Optimization/",
 ##################################################
 
 idx <- settings$id[which(settings$strata == 15 & settings$boat == 1)]
-# MCS: 15 is the only solution in there at the moment.
+# MCS: 15 is the only solution in there at the moment
 
 ##################################################
 ####  Extract survey information:
@@ -44,42 +54,50 @@ solution <- res_df[, paste0("sol_", idx)] #Optimized solution
 ####   Take a stratified random sample
 ##################################################
 #Loop across strata, take a random sample based on how many were allocated
+nrow(Extrapolation_depths)
+length(solution)
+
 sample_vec <- c()
 for (istrata in 1:nstrata) {
+  #sample from the population of solution values that are that stratum
   sample_vec <- c(sample_vec,
                   sample(x = which(solution == strata_no[istrata]),
                          size = nh[istrata]))
-  
-  plot(goa_ras,
-       col = c(RColorBrewer::brewer.pal(name = "Paired", n = 12),
-               RColorBrewer::brewer.pal(name = "Paired", n = 3)) )
-  
-  points(Extrapolation_depths[sample_vec, c("E_km", "N_km")],
-         pch = 16,
-         cex = 0.5)
 }
 
 ##################################################
 ####   Subset the spatial grid to only those that were sampled
 ##################################################
+# Includes trawlable and non-trawlable
 Extrapolation_depths[sample_vec,]
 
 ##################################################
 ####   Shortcut to plot solution and simulated survey locations
 ##################################################
+
 goa <- sp::SpatialPointsDataFrame(
   coords = Extrapolation_depths[,c("E_km", "N_km")],
   data = data.frame(solution = solution) )
+
+
 goa_ras <- raster::raster(x = goa,
                           resolution = 5)
 goa_ras <- raster::rasterize(x = goa,
                              y = goa_ras,
                              field = "solution")
 
+strata_pal <- c(RColorBrewer::brewer.pal(name = "Paired", n = 12),
+                RColorBrewer::brewer.pal(name = "Paired", n = 3))
+
 plot(goa_ras,
-     col = c(RColorBrewer::brewer.pal(name = "Paired", n = 12),
-             RColorBrewer::brewer.pal(name = "Paired", n = 3)) )
+     col = strata_pal)
 
 points(Extrapolation_depths[sample_vec, c("E_km", "N_km")],
        pch = 16,
        cex = 0.5)
+
+# This takes a while:
+ggplot() + 
+  annotation_spatial(goa) + 
+  layer_spatial(goa, aes(colour=factor(solution))) +
+  scale_colour_manual(values = strata_pal)
