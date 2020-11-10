@@ -7,6 +7,7 @@ library(sp)
 library(raster)
 library(RColorBrewer)
 library(tidyverse)
+library(sf) #for distances
 
 ##################################################
 ####   Source helper functions for plotting
@@ -86,8 +87,8 @@ goa_ras <- raster::rasterize(x = goa,
                              y = goa_ras,
                              field = "solution")
 
-strata_pal <- c(RColorBrewer::brewer.pal(name = "Paired", n = 12),
-                RColorBrewer::brewer.pal(name = "Paired", n = 3))
+strata_pal <- lengthen_pal(x = 1:nstrata,
+                           shortpal = brewer.pal(9,"Pastel1"))
 
 plot(goa_ras,
      col = strata_pal)
@@ -96,8 +97,81 @@ points(Extrapolation_depths[sample_vec, c("E_km", "N_km")],
        pch = 16,
        cex = 0.5)
 
-# This takes a while:
-ggplot() + 
-  annotation_spatial(goa) + 
-  layer_spatial(goa, aes(colour=factor(solution))) +
-  scale_colour_manual(values = strata_pal)
+
+# Calculate distances between points --------------------------------------
+survey_pts <- Extrapolation_depths[sample_vec, c("Lon", "Lat","E_km", "N_km", "Id","stratum","trawlable")]
+
+survey_sf <- sf::st_as_sf(x = survey_pts,
+                          coords = c("Lon","Lat"),
+                          crs = 4326, agr = "constant")
+
+# Coordinate reference system has been set, so distances will be in units()
+distance_matrix_km <- matrix(as.numeric(st_distance(survey_sf) / 1000),
+                             nrow = length(sample_vec)) #pairwise distances between survey points
+rownames(distance_matrix_km) <- 
+  colnames(distance_matrix_km) <- survey_sf$Id
+
+distance_df <- as.data.frame(distance_matrix_km) %>%
+  add_column(surveyId = colnames(distance_matrix_km)) %>%
+  pivot_longer(cols = colnames(distance_matrix_km))
+
+
+# Calculate total survey time ---------------------------------------------
+#According to N Laman, on average they do 4.7 tows/day
+# Roughest estimate (274 survey points)
+nrow(survey_pts)/4.7
+
+# Sample each station, starting from furthest west point and sampling the nearest station next:
+west_to_east <- survey_pts %>%
+  arrange(Lon)
+western_end <- west_to_east %>%
+  slice(1)
+
+# Check that this is the westernmost survey point:
+points(western_end[,c("E_km", "N_km")],col="red")
+
+# Test #1: After completing each survey station, three decision rules:
+# 1) which station is closest and unsampled?
+# 2) which station is the furthest west unsampled station? (i.e., don't skip over sites going west to east)
+# 3) is one of the above 2 deeper than the other? If so, pick the deepest station (to prioritize deeper, longer trawls first per Ned Laman)
+test.id <- as.character(survey_sf$Id[1])
+get_next_station <- function(stationId = test.id,
+                             already_sampled = "636174",
+                             distances = distance_df,
+                             depths = Extrapolation_depths[sample_vec,c('Id','DEPTH_EFH')], 
+                             longs = Extrapolation_depths[sample_vec,c('Id','Lon')]){
+  closest <- distances %>% 
+    filter(surveyId == stationId) %>%
+    filter(!name %in% already_sampled) %>%
+    filter(value>0) %>%
+    slice_min(value) %>%
+    select(name) %>%
+    as.character()
+  
+  furthest_w_unsampled <- longs %>%
+    filter(Id != stationId) %>%
+    filter(!Id %in% already_sampled) %>%
+    slice_min(Lon) %>%
+    select(Id) %>%
+    as.character()
+  
+  if(closest == furthest_w_unsampled){
+    selection = closest} else{
+      depth1 <- depths %>% filter(Id == closest) %>% select(DEPTH_EFH)
+      depth2 <- depths %>% filter(Id == furthest_w_unsampled) %>% select(DEPTH_EFH)
+      ind <- which.min(c(depth1,depth2))
+      selection <- c(closest,furthest_w_unsampled)[ind]
+    }
+  return(selection)
+}
+
+x <- get_next_station(stationId = western_end$Id,already_sampled = NA)
+points(filter(survey_pts,Id==x)[,c("E_km", "N_km")],col = 'blue')
+
+y <- get_next_station(stationId = x,already_sampled = c(western_end$Id, x))
+points(filter(survey_pts,Id==y)[,c("E_km", "N_km")],col = 'green')
+
+z <- get_next_station(stationId = y,already_sampled = c(western_end$Id, x, y))
+points(filter(survey_pts,Id==z)[,c("E_km", "N_km")],col = 'yellow')
+# 1 knot = 1.852 km/hr
+
