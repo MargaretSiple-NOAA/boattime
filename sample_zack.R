@@ -217,6 +217,28 @@ for(i in 2:nrow(d3)){
 tail(d3)
 max(d3$cumu_distance) # This is the cumulative total distance traveled during the survey!
 
+
+# Plot path of surveys ----------------------------------------------------
+d3 %>%
+  ggplot(aes(x=E_km,y=N_km)) +
+  geom_point()
+
+attempt1 <- ggplot() + 
+  geom_sf(data = field_sf) + 
+  geom_path(data=d3, aes(x=Lon,y=Lat, colour = order)) +
+  geom_point(data=d3, aes(x=Lon,y=Lat, colour = order)) +
+  scale_colour_viridis_c("Sampling order \n(1 = start of survey)")
+
+attempt1
+
+png(here::here("figures","Attempt1.png"),
+    width = 8, height = 5,
+    units = 'in',res = 250)
+attempt1
+dev.off()
+# Compare to survey track from 2019 ---------------------------------------
+# G:\GOA\GOA 2019\DATA_2019\Ocean Explorer\Leg 4\Globe\Tracks\
+
 # Need to figure out how to make raster + map in ggplot -------------------
 #ggplot() + geom_sf(data = field_sf) 
 #ggplot(goa_ras)  + geom_raster(aes(x=))
