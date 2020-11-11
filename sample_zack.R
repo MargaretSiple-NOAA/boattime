@@ -100,6 +100,9 @@ points(Extrapolation_depths[sample_vec, c("E_km", "N_km")],
 
 # Calculate distances between points --------------------------------------
 survey_pts <- Extrapolation_depths[sample_vec, c("Lon", "Lat","E_km", "N_km", "Id","stratum","trawlable")]
+field_sf <- sf::st_as_sf(x = Extrapolation_depths,
+                         coords = c("Lon","Lat"),
+                         crs = 4326)
 
 survey_sf <- sf::st_as_sf(x = survey_pts,
                           coords = c("Lon","Lat"),
@@ -173,5 +176,47 @@ points(filter(survey_pts,Id==y)[,c("E_km", "N_km")],col = 'green')
 
 z <- get_next_station(stationId = y,already_sampled = c(western_end$Id, x, y))
 points(filter(survey_pts,Id==z)[,c("E_km", "N_km")],col = 'yellow')
-# 1 knot = 1.852 km/hr
 
+
+# Survey design 1: Pick stations based on proximity, depth, west-t --------
+design1 <- rep(NA, times = length(sample_vec))
+design1[1] <- western_end$Id
+for(i in 2:length(sample_vec)){
+  design1[i] <- get_next_station(stationId = design1[i-1],
+                                 already_sampled = design1[1:i])
+}
+
+d1 <- data.frame(Id = design1, order = 1:length(design1))
+d2 <- Extrapolation_depths %>%
+  mutate(Id = as.character(Id)) %>%
+  right_join(d1,Extrapolation_depths, by = "Id")
+
+plot(goa_ras,
+     col = strata_pal)
+
+points(Extrapolation_depths[sample_vec, c("E_km", "N_km")],
+       pch = 16,
+       cex = 0.5,
+       col = 'lightgrey')
+
+# 1 knot = 1.852 km/hr
+d3 <- d2 %>% 
+  arrange(order) %>%
+  add_column(distance_from_prev = NA,
+             cumu_distance = 0)
+d3$distance_from_prev[1] <- 0
+
+for(i in 2:nrow(d3)){
+  d3$distance_from_prev[i] <- distance_df %>%
+    filter(surveyId == d3$Id[i], name == d3$Id[i-1]) %>%
+    select(value) %>% 
+    as.numeric()
+  d3$cumu_distance[i] <- sum(d3$distance_from_prev[1:i])
+}
+
+tail(d3)
+max(d3$cumu_distance) # This is the cumulative total distance traveled during the survey!
+
+# Need to figure out how to make raster + map in ggplot -------------------
+#ggplot() + geom_sf(data = field_sf) 
+#ggplot(goa_ras)  + geom_raster(aes(x=))
