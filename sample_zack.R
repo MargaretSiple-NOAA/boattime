@@ -182,15 +182,6 @@ d2 <- Extrapolation_depths %>%
   mutate(Id = as.character(Id)) %>%
   right_join(d1,Extrapolation_depths, by = "Id")
 
-plot(goa_ras,
-     col = strata_pal)
-
-points(Extrapolation_depths[sample_vec, c("E_km", "N_km")],
-       pch = 16,
-       cex = 0.5,
-       col = 'lightgrey')
-
-# 1 knot = 1.852 km/hr
 d3 <- d2 %>% 
   arrange(order) %>%
   add_column(distance_from_prev = NA,
@@ -232,6 +223,9 @@ dev.off()
 
 # Compare to survey track from 2019 ---------------------------------------
 # G:\GOA\GOA 2019\DATA_2019\Ocean Explorer\Leg 4\Globe\Tracks\
+
+# Other notes -------------------------------------------------------------
+# 1 knot = 1.852 km/hr
 
 # Need to figure out how to make raster + map in ggplot -------------------
 #ggplot() + geom_sf(data = field_sf) 
