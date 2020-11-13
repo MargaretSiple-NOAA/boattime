@@ -9,51 +9,38 @@ library(RColorBrewer)
 library(tidyverse)
 library(sf) #for distances
 
-##################################################
-####   Source helper functions for plotting
-##################################################
+
+# Source helper functions for plotting ------------------------------------
 source(here::here("..","HelperFns","lengthen_pal.R"))
 
-##################################################
-####   Set working directory to the GitHub Repo
-##################################################
-#setwd(here::here("..","Optimal_Allocation_GoA-master"))
 
-##################################################
-####   Load Spatial Grid
-##################################################
+# Load Spatial Grid -------------------------------------------------------
 load(here::here("..","Optimal_Allocation_GoA-master",
                 "data",
                 "Extrapolation_depths.RData"))
 
-##################################################
-####   Load Optimization Results
-##################################################
+
+# Load Optimization Results -----------------------------------------------
 load(here::here("..","Optimal_Allocation_GoA-master",
                 "model_11",
                 "full_domain",
                 "Spatiotemporal_Optimization",
                 "optimization_knitted_results.RData"))
 
-##################################################
-####   Query which solution to used based on the
-####   optimized 1-boat, 15 strata solution
-##################################################
-
+# Query which solution to used based on the optimized 1-boat, 15 strata solution-------------------------------
 idx <- settings$id[which(settings$strata == 15 & settings$boat == 1)]
 # MCS: 15 is the only solution in there at the moment
 
-##################################################
-####  Extract survey information:
-##################################################
+
+
+# Extract survey information ----------------------------------------------
 strata_no <- as.numeric(as.character(strata_list[[idx]]$Stratum)) #unique stratum "ID"
 nh <- strata_list[[idx]]$Allocation #allocated effort across strata (number of sites to visit)
 nstrata <- length(nh) #Number of strata
 solution <- res_df[, paste0("sol_", idx)] #Optimized solution
 
-##################################################
-####   Take a stratified random sample
-##################################################
+
+# Take a stratified random sample -----------------------------------------
 #Loop across strata, take a random sample based on how many were allocated
 nrow(Extrapolation_depths)
 length(solution)
@@ -66,16 +53,12 @@ for (istrata in 1:nstrata) {
                          size = nh[istrata]))
 }
 
-##################################################
-####   Subset the spatial grid to only those that were sampled
-##################################################
+# Subset the spatial grid to only those that were sampled -----------------
 # Includes trawlable and non-trawlable
 Extrapolation_depths[sample_vec,]
 
-##################################################
-####   Shortcut to plot solution and simulated survey locations
-##################################################
 
+# Shortcut to plot solution and simulated survey locations ----------------
 goa <- sp::SpatialPointsDataFrame(
   coords = Extrapolation_depths[,c("E_km", "N_km")],
   data = data.frame(solution = solution) )
@@ -238,6 +221,8 @@ attempt1
 dev.off()
 # Compare to survey track from 2019 ---------------------------------------
 # G:\GOA\GOA 2019\DATA_2019\Ocean Explorer\Leg 4\Globe\Tracks\
+
+
 
 # Need to figure out how to make raster + map in ggplot -------------------
 #ggplot() + geom_sf(data = field_sf) 
