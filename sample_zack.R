@@ -7,7 +7,7 @@ library(sp)
 library(raster)
 library(RColorBrewer)
 library(tidyverse)
-library(sf) #for distances
+library(sf) # distances
 
 
 # Source helper functions for plotting ------------------------------------
@@ -76,13 +76,16 @@ strata_pal <- lengthen_pal(x = 1:nstrata,
 plot(goa_ras,
      col = strata_pal)
 
-points(Extrapolation_depths[sample_vec, c("E_km", "N_km")],
+points(Extrapolation_depths[sample_vec,
+                            c("E_km", "N_km")],
        pch = 16,
        cex = 0.5)
 
 
 # Calculate distances between points --------------------------------------
-survey_pts <- Extrapolation_depths[sample_vec, c("Lon", "Lat","E_km", "N_km", "Id","stratum","trawlable")]
+survey_pts <- Extrapolation_depths[sample_vec,
+                                   c("Lon", "Lat","E_km", "N_km",
+                                     "Id","stratum","trawlable")]
 field_sf <- sf::st_as_sf(x = Extrapolation_depths,
                          coords = c("Lon","Lat"),
                          crs = 4326)
@@ -93,9 +96,11 @@ survey_sf <- sf::st_as_sf(x = survey_pts,
 
 # Coordinate reference system has been set, so distances will be in units()
 distance_matrix_km <- matrix(as.numeric(st_distance(survey_sf) / 1000),
-                             nrow = length(sample_vec)) #pairwise distances between survey points
+                             nrow = length(sample_vec)) #pairwise distances between survey points in km
+
 rownames(distance_matrix_km) <- 
-  colnames(distance_matrix_km) <- survey_sf$Id
+  colnames(distance_matrix_km) <- 
+  survey_sf$Id
 
 distance_df <- as.data.frame(distance_matrix_km) %>%
   add_column(surveyId = colnames(distance_matrix_km)) %>%
@@ -116,10 +121,13 @@ western_end <- west_to_east %>%
 # Check that this is the westernmost survey point:
 points(western_end[,c("E_km", "N_km")],col="red")
 
-# Test #1: After completing each survey station, three decision rules:
+
+
+# Survey design 1: Pick stations based on proximity, depth, west-t --------
+# After completing each survey station, three decision rules:
 # 1) which station is closest and unsampled?
 # 2) which station is the furthest west unsampled station? (i.e., don't skip over sites going west to east)
-# 3) is one of the above 2 deeper than the other? If so, pick the deepest station (to prioritize deeper, longer trawls first per Ned Laman)
+# 3) is one of the above 2 deeper than the other? If so, pick the deepest station (to prioritize deeper, longer trawls first per Ned & Wayne)
 test.id <- as.character(survey_sf$Id[1])
 get_next_station <- function(stationId = test.id,
                              already_sampled = "636174",
@@ -160,16 +168,16 @@ points(filter(survey_pts,Id==y)[,c("E_km", "N_km")],col = 'green')
 z <- get_next_station(stationId = y,already_sampled = c(western_end$Id, x, y))
 points(filter(survey_pts,Id==z)[,c("E_km", "N_km")],col = 'yellow')
 
+# Setup survey plan
+plan1 <- rep(NA, times = length(sample_vec))
+plan1[1] <- western_end$Id
 
-# Survey design 1: Pick stations based on proximity, depth, west-t --------
-design1 <- rep(NA, times = length(sample_vec))
-design1[1] <- western_end$Id
 for(i in 2:length(sample_vec)){
-  design1[i] <- get_next_station(stationId = design1[i-1],
-                                 already_sampled = design1[1:i])
+  plan1[i] <- get_next_station(stationId = plan1[i-1],
+                                 already_sampled = plan1[1:i])
 }
 
-d1 <- data.frame(Id = design1, order = 1:length(design1))
+d1 <- data.frame(Id = plan1, order = 1:length(plan1))
 d2 <- Extrapolation_depths %>%
   mutate(Id = as.character(Id)) %>%
   right_join(d1,Extrapolation_depths, by = "Id")
@@ -198,31 +206,32 @@ for(i in 2:nrow(d3)){
 }
 
 tail(d3)
-max(d3$cumu_distance) # This is the cumulative total distance traveled during the survey!
+max(d3$cumu_distance) 
+# This is the cumulative total distance traveled during the survey! It's a lot.
 
 
-# Plot path of surveys ----------------------------------------------------
+# Plot path of survey ----------------------------------------------------
 d3 %>%
-  ggplot(aes(x=E_km,y=N_km)) +
+  ggplot(aes(x = E_km,y = N_km)) +
   geom_point()
 
 attempt1 <- ggplot() + 
   geom_sf(data = field_sf) + 
-  geom_path(data=d3, aes(x=Lon,y=Lat, colour = order)) +
-  geom_point(data=d3, aes(x=Lon,y=Lat, colour = order)) +
+  geom_path(data = d3, aes(x = Lon,y = Lat, colour = order)) +
+  geom_point(data = d3, aes(x = Lon,y = Lat, colour = order)) +
   scale_colour_viridis_c("Sampling order \n(1 = start of survey)")
 
 attempt1
 
-png(here::here("figures","Attempt1.png"),
+png(here::here("figures", "Attempt1.png"),
     width = 8, height = 5,
     units = 'in',res = 250)
 attempt1
 dev.off()
+
+
 # Compare to survey track from 2019 ---------------------------------------
 # G:\GOA\GOA 2019\DATA_2019\Ocean Explorer\Leg 4\Globe\Tracks\
-
-
 
 # Need to figure out how to make raster + map in ggplot -------------------
 #ggplot() + geom_sf(data = field_sf) 
