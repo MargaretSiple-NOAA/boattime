@@ -86,6 +86,7 @@ points(Extrapolation_depths[sample_vec,
 survey_pts <- Extrapolation_depths[sample_vec,
                                    c("Lon", "Lat","E_km", "N_km",
                                      "Id","stratum","trawlable")]
+
 field_sf <- sf::st_as_sf(x = Extrapolation_depths,
                          coords = c("Lon","Lat"),
                          crs = 4326)
@@ -102,7 +103,10 @@ rownames(distance_matrix_km) <-
   colnames(distance_matrix_km) <- 
   survey_sf$Id
 
-distance_df <- as.data.frame(distance_matrix_km) %>%
+#save(distance_matrix_km,file = here::here("data","DistanceMatrix1.RData"))
+#load(here::here("data","DistanceMatrix1.RData"))
+
+distance_df <- as.data.frame(distance_matrix_km) %>% # longform distance matrix
   add_column(surveyId = colnames(distance_matrix_km)) %>%
   pivot_longer(cols = colnames(distance_matrix_km))
 
@@ -110,7 +114,8 @@ distance_df <- as.data.frame(distance_matrix_km) %>%
 # Calculate total survey time ---------------------------------------------
 #According to N Laman, on average they do 4.7 tows/day
 # Roughest estimate (274 survey points)
-nrow(survey_pts)/4.7
+nrow(survey_pts)/4.2 #Wayne
+nrow(survey_pts)/4.7 #Ned
 
 # Sample each station, starting from furthest west point and sampling the nearest station next:
 west_to_east <- survey_pts %>%
@@ -177,13 +182,14 @@ for(i in 2:length(sample_vec)){
                                  already_sampled = plan1[1:i])
 }
 
-d1 <- data.frame(Id = plan1, order = 1:length(plan1))
+d1 <- data.frame(Id = plan1, nwd_order = 1:length(plan1))
+
 d2 <- Extrapolation_depths %>%
   mutate(Id = as.character(Id)) %>%
   right_join(d1,Extrapolation_depths, by = "Id")
 
 d3 <- d2 %>% 
-  arrange(order) %>%
+  arrange(nwd_order) %>%
   add_column(distance_from_prev = NA,
              cumu_distance = 0)
 d3$distance_from_prev[1] <- 0
@@ -202,23 +208,40 @@ max(d3$cumu_distance)
 
 
 # Plot path of survey ----------------------------------------------------
-d3 %>%
-  ggplot(aes(x = E_km,y = N_km)) +
-  geom_point()
 
 attempt1 <- ggplot() + 
   geom_sf(data = field_sf) + 
-  geom_path(data = d3, aes(x = Lon,y = Lat, colour = order)) +
-  geom_point(data = d3, aes(x = Lon,y = Lat, colour = order)) +
-  scale_colour_viridis_c("Sampling order \n(1 = start of survey)")
+  geom_path(data = d3, aes(x = Lon,y = Lat, colour = nwd_order)) +
+  geom_point(data = d3, aes(x = Lon,y = Lat, colour = nwd_order)) +
+  scale_colour_viridis_c("Sampling order \n(1 = start of survey)") +
+  labs(title = "Nearest neighbor / furthest west")
 
 attempt1
 
-png(here::here("figures", "Attempt1.png"),
-    width = 8, height = 5,
+
+# Option 2: Use "traveling salesperson" solution --------------------------
+source(here::here("tsp.R"))
+tsp_sol <- get_tsp_soln(x = distance_matrix_km)
+
+d4 <- d3 %>%
+  left_join(tsp_sol, by = c("Id" = "site"))
+  
+attempt2 <- ggplot() + 
+  geom_sf(data = field_sf) + 
+  geom_path(data = d4, aes(x = Lon,y = Lat, colour = tsp_order)) +
+  geom_point(data = d4, aes(x = Lon,y = Lat, colour = tsp_order)) +
+  scale_colour_viridis_c("Sampling order \n(1 = start of survey)") +
+  labs(title = "Traveling salesperson")
+
+
+library(patchwork)
+
+png(here::here("figures", "Attempt1_2.png"),
+    width = 8, height = 10,
     units = 'in',res = 250)
-attempt1
+attempt1 + attempt2 + plot_layout(ncol=1)
 dev.off()
+
 
 
 # Compare to survey track from 2019 ---------------------------------------
