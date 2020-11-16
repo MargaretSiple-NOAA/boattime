@@ -2,7 +2,7 @@
 ## Project:  General template for sampling surveys from an optimized or current survey
 ## Author: Zack Oyafuso (with additions from Megsie Siple)
 ## Description: Sample a random set of survey points
-##########################################################################
+###########################################################################
 library(sp)
 library(raster)
 library(RColorBrewer)
@@ -10,7 +10,7 @@ library(tidyverse)
 library(sf)   # distances
 
 
-# Get palette lengthener function -----------------------------------------
+# Palette lengthener function ---------------------------------------------
 source(here::here("code","lengthen_pal.R"))
 
 
@@ -80,7 +80,7 @@ points(Extrapolation_depths[sample_vec,
        cex = 0.5)
 
 
-# Get sampled points --------------------------------------
+# Get sampled points ------------------------------------------------------
 survey_pts <- Extrapolation_depths[sample_vec,
                                    c("Lon", "Lat","E_km", "N_km",
                                      "Id","stratum","trawlable")]
@@ -130,7 +130,7 @@ points(western_end[,c("E_km", "N_km")],col="red")
 
 
 
-# Option 1: Prioritize next station by proximity, depth, and W-to-E --------
+# Option 1: Prioritize next station by proximity, depth, and W-to-E -------
 
 source(here::here("code","stationdecisions","get_next_station_1.R"))
 
@@ -180,7 +180,7 @@ cat("max survey distance (km) \n",
     max(d3$cumu_distance) )
 
 
-# Plot survey path ----------------------------------------------------
+# Plot survey path --------------------------------------------------------
 
 attempt1 <- ggplot() + 
   geom_sf(data = field_sf) + 
@@ -190,9 +190,6 @@ attempt1 <- ggplot() +
   labs(title = "Nearest neighbor / furthest west")
 
 attempt1
-
-
-
 
 
 
