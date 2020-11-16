@@ -1,17 +1,17 @@
-###############################################################################
+###########################################################################
 ## Project:  General template for sampling surveys from an optimized or current survey
 ## Author: Zack Oyafuso (with additions from Megsie Siple)
 ## Description: Sample a random set of survey points
-###############################################################################
+##########################################################################
 library(sp)
 library(raster)
 library(RColorBrewer)
 library(tidyverse)
-library(sf) # distances
+library(sf)   # distances
 
 
-# Source helper functions for plotting ------------------------------------
-source(here::here("..","HelperFns","lengthen_pal.R"))
+# Get palette lengthener function -----------------------------------------
+source(here::here("code","lengthen_pal.R"))
 
 
 # Load Spatial Grid -------------------------------------------------------
@@ -27,16 +27,14 @@ load(here::here("..","Optimal_Allocation_GoA-master",
                 "Spatiotemporal_Optimization",
                 "optimization_knitted_results.RData"))
 
-# Query which solution to used based on the optimized 1-boat, 15 strata solution-------------------------------
+# Query which solution to use based on 1-boat, 15 strata solution----------
 idx <- settings$id[which(settings$strata == 15 & settings$boat == 1)]
-# MCS: 15 is the only solution in there at the moment
-
 
 
 # Extract survey information ----------------------------------------------
 strata_no <- as.numeric(as.character(strata_list[[idx]]$Stratum)) #unique stratum "ID"
-nh <- strata_list[[idx]]$Allocation #allocated effort across strata (number of sites to visit)
-nstrata <- length(nh) #Number of strata
+nh <- strata_list[[idx]]$Allocation #allocated effort across strata (n of sites to visit)
+nstrata <- length(nh)
 solution <- res_df[, paste0("sol_", idx)] #Optimized solution
 
 
@@ -82,7 +80,7 @@ points(Extrapolation_depths[sample_vec,
        cex = 0.5)
 
 
-# Calculate distances between points --------------------------------------
+# Get sampled points --------------------------------------
 survey_pts <- Extrapolation_depths[sample_vec,
                                    c("Lon", "Lat","E_km", "N_km",
                                      "Id","stratum","trawlable")]
@@ -95,9 +93,9 @@ survey_sf <- sf::st_as_sf(x = survey_pts,
                           coords = c("Lon","Lat"),
                           crs = 4326, agr = "constant")
 
-# Coordinate reference system has been set, so distances will be in units()
+# Pairwise distances between survey points in km
 distance_matrix_km <- matrix(as.numeric(st_distance(survey_sf) / 1000),
-                             nrow = length(sample_vec)) #pairwise distances between survey points in km
+                             nrow = length(sample_vec)) 
 
 rownames(distance_matrix_km) <- 
   colnames(distance_matrix_km) <- 
@@ -106,7 +104,8 @@ rownames(distance_matrix_km) <-
 #save(distance_matrix_km,file = here::here("data","DistanceMatrix1.RData"))
 #load(here::here("data","DistanceMatrix1.RData"))
 
-distance_df <- as.data.frame(distance_matrix_km) %>% # longform distance matrix
+# Long-form distance matrix
+distance_df <- as.data.frame(distance_matrix_km) %>% 
   add_column(surveyId = colnames(distance_matrix_km)) %>%
   pivot_longer(cols = colnames(distance_matrix_km))
 
@@ -128,49 +127,22 @@ points(western_end[,c("E_km", "N_km")],col="red")
 
 
 
-# Survey design 1: Pick stations based on proximity, depth, west-t --------
-# After completing each survey station, three decision rules:
-# 1) which station is closest and unsampled?
-# 2) which station is the furthest west unsampled station? (i.e., don't skip over sites going west to east)
-# 3) is one of the above 2 deeper than the other? If so, pick the deepest station (to prioritize deeper, longer trawls first per Ned & Wayne)
-test.id <- as.character(survey_sf$Id[1])
-get_next_station <- function(stationId = test.id,
-                             already_sampled = "636174",
-                             distances = distance_df,
-                             depths = Extrapolation_depths[sample_vec,c('Id','DEPTH_EFH')], 
-                             longs = Extrapolation_depths[sample_vec,c('Id','Lon')]){
-  closest <- distances %>% 
-    filter(surveyId == stationId) %>%
-    filter(!name %in% already_sampled) %>%
-    filter(value>0) %>%
-    slice_min(value) %>%
-    select(name) %>%
-    as.character()
-  
-  furthest_w_unsampled <- longs %>%
-    filter(Id != stationId) %>%
-    filter(!Id %in% already_sampled) %>%
-    slice_min(Lon) %>%
-    select(Id) %>%
-    as.character()
-  
-  if(closest == furthest_w_unsampled){
-    selection = closest} else{
-      depth1 <- depths %>% filter(Id == closest) %>% select(DEPTH_EFH)
-      depth2 <- depths %>% filter(Id == furthest_w_unsampled) %>% select(DEPTH_EFH)
-      ind <- which.min(c(depth1,depth2))
-      selection <- c(closest,furthest_w_unsampled)[ind]
-    }
-  return(selection)
-}
 
-x <- get_next_station(stationId = western_end$Id,already_sampled = NA)
+
+
+# Option 1: Prioritize next station by proximity, depth, and W-to-E --------
+
+source(here::here("code","stationdecisions","get_next_station_1.R"))
+
+test.id <- as.character(survey_sf$Id[1])
+
+x <- get_next_station_1(stationId = western_end$Id,already_sampled = NA)
 points(filter(survey_pts,Id==x)[,c("E_km", "N_km")],col = 'blue')
 
-y <- get_next_station(stationId = x,already_sampled = c(western_end$Id, x))
+y <- get_next_station_1(stationId = x,already_sampled = c(western_end$Id, x))
 points(filter(survey_pts,Id==y)[,c("E_km", "N_km")],col = 'green')
 
-z <- get_next_station(stationId = y,already_sampled = c(western_end$Id, x, y))
+z <- get_next_station_1(stationId = y,already_sampled = c(western_end$Id, x, y))
 points(filter(survey_pts,Id==z)[,c("E_km", "N_km")],col = 'yellow')
 
 # Setup survey plan
@@ -178,7 +150,7 @@ plan1 <- rep(NA, times = length(sample_vec))
 plan1[1] <- western_end$Id
 
 for(i in 2:length(sample_vec)){
-  plan1[i] <- get_next_station(stationId = plan1[i-1],
+  plan1[i] <- get_next_station_1(stationId = plan1[i-1],
                                  already_sampled = plan1[1:i])
 }
 
@@ -203,11 +175,12 @@ for(i in 2:nrow(d3)){
 }
 
 tail(d3)
-max(d3$cumu_distance) 
-# This is the cumulative total distance traveled during the survey! It's a lot.
+
+cat("max survey distance (km) \n",
+    max(d3$cumu_distance) )
 
 
-# Plot path of survey ----------------------------------------------------
+# Plot survey path ----------------------------------------------------
 
 attempt1 <- ggplot() + 
   geom_sf(data = field_sf) + 
@@ -219,8 +192,15 @@ attempt1 <- ggplot() +
 attempt1
 
 
+
+
+
+
+
+
 # Option 2: Use "traveling salesperson" solution --------------------------
-source(here::here("tsp.R"))
+source(here::here("code","stationdecisions","tsp.R"))
+
 tsp_sol <- get_tsp_soln(x = distance_matrix_km)
 
 d4 <- d3 %>%
@@ -236,16 +216,12 @@ attempt2 <- ggplot() +
 
 library(patchwork)
 
-png(here::here("figures", "Attempt1_2.png"),
-    width = 8, height = 10,
-    units = 'in',res = 250)
+#png(here::here("figures", "Attempt1_2.png"),
+#    width = 8, height = 10,
+#    units = 'in',res = 250)
 attempt1 + attempt2 + plot_layout(ncol=1)
-dev.off()
+#dev.off()
 
-
-
-# Compare to survey track from 2019 ---------------------------------------
-# G:\GOA\GOA 2019\DATA_2019\Ocean Explorer\Leg 4\Globe\Tracks\
 
 # Other notes -------------------------------------------------------------
 # 1 knot = 1.852 km/hr
