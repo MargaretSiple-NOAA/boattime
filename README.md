@@ -7,9 +7,20 @@ This repository uses outputs from Zack's Optimal Allocation repository: https://
 
 *** 
 ## Script overview
-stationdecisions/ : contains functions for determining what station should be sampled "next" once you're at a given station. These include (so far):
+stationdecisions/ : contains functions for determining what station should be sampled "next"
+sample_stations.R : get survey order based on decision rules and make plots
+historical.R : load historical cruise data for comparison
+
+## Input
+This code is intended to work with any survey design (optimized or historical). For the optimized survey design part, this script draws from Zack's optimized GoA survey design, which is the full domain spatiotemporal optimization from model 11 ([Optimal_Allocation_GoA-master](https://github.com/zoyafuso-NOAA/Optimal_Allocation_GoA)). 
+
+
+## Analysis flow
+### Get stations
+This script samples randomly from the optimized survey design, randomly selecting stations from each stratum based on the optimal allocation. 
+
+### Station decisions
+These include (so far):
 1. *Proximity and depth* (get_next_station_1.R) Between closest and furthest west unsampled station, pick the deeper one
 2. *Traveling Salesperson Problem* (tsp.R) Stations are sampled to minimize the total distance traveled, starting at the westernmost station
-
-## 
 
