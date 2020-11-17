@@ -1,4 +1,3 @@
-
 # Project:  General template for sampling surveys from an optimize --------
 # General template for sampling surveys from an optimized or current survey
 # Author: Zack Oyafuso (with additions from Megsie Siple)
@@ -17,12 +16,14 @@ source(here::here("code","lengthen_pal.R"))
 
 
 
+
 # 2. Load optimized survey design -----------------------------------------
 
 # * Spatial grid ----------------------------------------------------------
 load(here::here("..","Optimal_Allocation_GoA-master",
                 "data",
                 "Extrapolation_depths.RData"))
+#dataframe: Extrapolation_depths
 
 # * Load Optimization Results ---------------------------------------------
 load(here::here("..","Optimal_Allocation_GoA-master",
@@ -30,16 +31,16 @@ load(here::here("..","Optimal_Allocation_GoA-master",
                 "full_domain",
                 "Spatiotemporal_Optimization",
                 "optimization_knitted_results.RData"))
-
+# df's and lists: res_df, settings, strata_list, strata_stats_list
 
 # 3. Pick solution and get survey information -----------------------------
 # * 3.1 Query which solution to use based on 1-boat, 15 strata solution----
 idx <- settings$id[which(settings$strata == 15 & settings$boat == 1)]
-
+idx2 <- settings$id[which(settings$strata == 15 & settings$boat == 2)]
 
 # * 3.2 Extract survey information ----------------------------------------
 strata_no <- as.numeric(as.character(strata_list[[idx]]$Stratum)) #unique stratum "ID"
-nh <- strata_list[[idx]]$Allocation #allocated effort across strata (n of sites to visit)
+nh <- strata_list[[idx]]$Allocation #allocated effort across strata (n of locations to visit)
 nstrata <- length(nh)
 solution <- res_df[, paste0("sol_", idx)] #Optimized solution
 
@@ -51,14 +52,13 @@ length(solution)
 
 sample_vec <- c()
 for (istrata in 1:nstrata) {
-  #sample from the population of solution values that are that stratum
   sample_vec <- c(sample_vec,
                   sample(x = which(solution == strata_no[istrata]),
                          size = nh[istrata]))
 }
 
 # Subset the spatial grid to only those that were sampled 
-# Includes trawlable and non-trawlable
+# Includes trawlable and non-trawlable locations
 Extrapolation_depths[sample_vec,]
 
 
