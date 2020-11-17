@@ -207,7 +207,7 @@ tsp_sol <- get_tsp_soln(x = distance_matrix_km)
 
 d4 <- d3 %>%
   left_join(tsp_sol, by = c("Id" = "site"))
-  
+
 attempt2 <- ggplot() + 
   geom_sf(data = field_sf) + 
   geom_path(data = d4, aes(x = Lon,y = Lat, colour = tsp_order)) +
@@ -224,6 +224,28 @@ library(patchwork)
 attempt1 + attempt2 + plot_layout(ncol=1)
 #dev.off()
 
+
+
+# 5. Distribution of two closest stations for each station ----------------
+distance_df # distances between each pair
+nearest_neighbor <- distance_df %>% 
+  select(surveyId) %>%
+  distinct() %>%
+  mutate(nene1 = function(x) filter(distance_df, surveyId==x) %>% value)
+
+nearest_neighbor <- distance_df %>%
+          group_by(surveyId) %>%
+          summarize(nn1 = nth(value,n = 2), # min distance will always be 0
+                    nn2 = nth(value,n = 3))
+nnlabs <- c("Nearest neighbor","Second-nearest neighbor")
+names(nnlabs) <- c("nn1","nn2")
+
+nearest_neighbor %>%
+  pivot_longer(cols = nn1:nn2) %>%
+  ggplot(aes(x=value)) +
+  geom_histogram(binwidth = 50) + 
+  facet_wrap(~name,ncol = 1,
+             labeller = labeller(name = nnlabs))
 
 # Other notes -------------------------------------------------------------
 # 1 knot = 1.852 km/hr
