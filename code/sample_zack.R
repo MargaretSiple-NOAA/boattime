@@ -1,8 +1,9 @@
-###########################################################################
-## Project:  General template for sampling surveys from an optimized or current survey
-## Author: Zack Oyafuso (with additions from Megsie Siple)
-## Description: Sample a random set of survey points
-###########################################################################
+
+# Project:  General template for sampling surveys from an optimize --------
+# General template for sampling surveys from an optimized or current survey
+# Author: Zack Oyafuso (with additions from Megsie Siple)
+# Description: Sample a random set of survey points
+
 library(sp)
 library(raster)
 library(RColorBrewer)
@@ -10,35 +11,40 @@ library(tidyverse)
 library(sf)   # distances
 
 
-# Palette lengthener function ---------------------------------------------
+# 1. Load helpers ---------------------------------------------------------
+# Palette lengthener function 
 source(here::here("code","lengthen_pal.R"))
 
 
-# Load Spatial Grid -------------------------------------------------------
+
+# 2. Load optimized survey design -----------------------------------------
+
+# * Spatial grid ----------------------------------------------------------
 load(here::here("..","Optimal_Allocation_GoA-master",
                 "data",
                 "Extrapolation_depths.RData"))
 
-
-# Load Optimization Results -----------------------------------------------
+# * Load Optimization Results ---------------------------------------------
 load(here::here("..","Optimal_Allocation_GoA-master",
                 "model_11",
                 "full_domain",
                 "Spatiotemporal_Optimization",
                 "optimization_knitted_results.RData"))
 
-# Query which solution to use based on 1-boat, 15 strata solution----------
+
+# 3. Pick solution and get survey information -----------------------------
+# * 3.1 Query which solution to use based on 1-boat, 15 strata solution----
 idx <- settings$id[which(settings$strata == 15 & settings$boat == 1)]
 
 
-# Extract survey information ----------------------------------------------
+# * 3.2 Extract survey information ----------------------------------------
 strata_no <- as.numeric(as.character(strata_list[[idx]]$Stratum)) #unique stratum "ID"
 nh <- strata_list[[idx]]$Allocation #allocated effort across strata (n of sites to visit)
 nstrata <- length(nh)
 solution <- res_df[, paste0("sol_", idx)] #Optimized solution
 
 
-# Take a stratified random sample -----------------------------------------
+# * 3.3 Take a stratified random sample -----------------------------------
 #Loop across strata, take a random sample based on how many were allocated
 nrow(Extrapolation_depths)
 length(solution)
@@ -51,12 +57,12 @@ for (istrata in 1:nstrata) {
                          size = nh[istrata]))
 }
 
-# Subset the spatial grid to only those that were sampled -----------------
+# Subset the spatial grid to only those that were sampled 
 # Includes trawlable and non-trawlable
 Extrapolation_depths[sample_vec,]
 
 
-# Shortcut to plot solution and simulated survey locations ----------------
+# Shortcut to plot solution and simulated survey locations
 goa <- sp::SpatialPointsDataFrame(
   coords = Extrapolation_depths[,c("E_km", "N_km")],
   data = data.frame(solution = solution) )
@@ -80,7 +86,7 @@ points(Extrapolation_depths[sample_vec,
        cex = 0.5)
 
 
-# Get sampled points ------------------------------------------------------
+# * 3.4 Get sampled points ------------------------------------------------
 survey_pts <- Extrapolation_depths[sample_vec,
                                    c("Lon", "Lat","E_km", "N_km",
                                      "Id","stratum","trawlable")]
@@ -110,7 +116,7 @@ distance_df <- as.data.frame(distance_matrix_km) %>%
   pivot_longer(cols = colnames(distance_matrix_km))
 
 
-# Calculate total survey time ---------------------------------------------
+#4.  Calculate total survey time ------------------------------------------
 #According to N Laman, on average they do 4.7 tows/day
 # Roughest estimate (274 survey points)
 nrow(survey_pts)/4.2 #Wayne
@@ -130,7 +136,7 @@ points(western_end[,c("E_km", "N_km")],col="red")
 
 
 
-# Option 1: Prioritize next station by proximity, depth, and W-to-E -------
+# * 4.1 Option 1: Prioritize next station by proximity, depth, and W-to-E ----
 
 source(here::here("code","stationdecisions","get_next_station_1.R"))
 
@@ -179,8 +185,7 @@ tail(d3)
 cat("max survey distance (km) \n",
     max(d3$cumu_distance) )
 
-
-# Plot survey path --------------------------------------------------------
+# Plot survey path 
 
 attempt1 <- ggplot() + 
   geom_sf(data = field_sf) + 
@@ -195,7 +200,7 @@ attempt1
 
 
 
-# Option 2: Use "traveling salesperson" solution --------------------------
+# * 4.2 Option 2: Use "traveling salesperson" solution --------------------
 source(here::here("code","stationdecisions","tsp.R"))
 
 tsp_sol <- get_tsp_soln(x = distance_matrix_km)
