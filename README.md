@@ -5,13 +5,16 @@ This repository contains code for measuring distances between survey points and 
 
 This repository uses outputs from Zack's Optimal Allocation repository: https://github.com/zoyafuso-NOAA/Optimal_Allocation_GoA
 
+### File structure
+
+
 *** 
 ## Script overview
 stationdecisions/ : contains functions for determining what station should be sampled "next"
 
 sample_stations.R : get survey order based on decision rules and make plots
 historical.R : load historical cruise data for comparison
-
+Process_AK_BTS_data_all_hauls_megsie.R : process raw historical haul data (from Lewis)
 
 ## Input
 This code is intended to work with any survey design (optimized or historical). For the optimized survey design part, this script draws from Zack's optimized GoA survey design, which is the full domain spatiotemporal optimization from model 11 ([Optimal_Allocation_GoA-master](https://github.com/zoyafuso-NOAA/Optimal_Allocation_GoA)). 
