@@ -243,13 +243,13 @@ names(nnlabs) <- c("nn1","nn2")
 
 # Plot distribution of nearest neighbors
 nnplot <- nearest_neighbor %>%
-          pivot_longer(cols = nn1:nn2) %>%
-          ggplot(aes(x = value)) +
-          geom_histogram(binwidth = 5) + 
-          xlab("Distance (km)") +
-          ylab("Frequency") +
-          facet_wrap(~name,ncol = 1,
-                     labeller = labeller(name = nnlabs))
+  pivot_longer(cols = nn1:nn2) %>%
+  ggplot(aes(x = value)) +
+  geom_histogram(binwidth = 5) + 
+  xlab("Distance (km)") +
+  ylab("Frequency") +
+  facet_wrap(~name,ncol = 1,
+             labeller = labeller(name = nnlabs))
 
 # Other notes -------------------------------------------------------------
 # 1 knot = 1.852 km/hr
