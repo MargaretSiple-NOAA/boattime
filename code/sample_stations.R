@@ -175,7 +175,7 @@ d3$distance_from_prev[1] <- 0
 for(i in 2:nrow(d3)){
   d3$distance_from_prev[i] <- distance_df %>%
     filter(surveyId == d3$Id[i], name == d3$Id[i-1]) %>%
-    select(value) %>% 
+    dplyr::select(value) %>% 
     as.numeric()
   d3$cumu_distance[i] <- sum(d3$distance_from_prev[1:i])
 }
@@ -228,10 +228,10 @@ attempt1 + attempt2 + plot_layout(ncol=1)
 
 # 5. Distribution of two closest stations for each station ----------------
 distance_df # distances between each pair
-nearest_neighbor <- distance_df %>% 
-  select(surveyId) %>%
-  distinct() %>%
-  mutate(nene1 = function(x) filter(distance_df, surveyId==x) %>% value)
+# nearest_neighbor <- distance_df %>% 
+#   select(surveyId) %>%
+#   distinct() %>%
+#   mutate(nene1 = function(x) filter(distance_df, surveyId==x) %>% value)
 
 nearest_neighbor <- distance_df %>%
   arrange(value) %>%
@@ -244,13 +244,18 @@ names(nnlabs) <- c("nn1","nn2")
 # Plot distribution of nearest neighbors
 nnplot <- nearest_neighbor %>%
   pivot_longer(cols = nn1:nn2) %>%
-  ggplot(aes(x = value)) +
-  geom_histogram(binwidth = 5) + 
+  ggplot(aes(x = value, fill = name)) +
+  geom_histogram(alpha = 0.2, binwidth = 5, position = "identity") + 
   xlab("Distance (km)") +
   ylab("Frequency") +
-  facet_wrap(~name,ncol = 1,
-             labeller = labeller(name = nnlabs))
+  scale_fill_discrete("",
+                      labels = c("Nearest station",
+                                 "Second-nearest station"))
 
+
+png(filename = here::here("figures","Optimal.png"),width = 6, height = 5, units = 'in',res = 150)
+nnplot
+dev.off()
 # Other notes -------------------------------------------------------------
 # 1 knot = 1.852 km/hr
 
