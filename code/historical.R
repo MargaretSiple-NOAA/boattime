@@ -81,6 +81,7 @@ get_dist <- function(year, hauldata = h){
                           crs = 4326, agr = "constant")
   distance_matrix_km <- matrix(as.numeric(sf::st_distance(locs_sf) / 1000),
                                nrow = nrow(locs)) 
+  print(nrow(locs))
   rownames(distance_matrix_km) <- 
     colnames(distance_matrix_km) <- 
     locs_sf$order
@@ -125,9 +126,9 @@ for(i in 1:length(years_vec)){
   unique_year = years_vec[i]
   map1 <- get_map(year = unique_year)
   dist1 <- get_dist(year = unique_year)
-  png(filename = here::here("figures",paste0("Year_",unique_year,".png")),width = 10, height = 6, units = 'in',res = 150)
+  #png(filename = here::here("figures",paste0("Year_",unique_year,".png")),width = 10, height = 6, units = 'in',res = 150)
   map1 + dist1 + plot_layout(ncol = 2, widths = c(2,1))
-  dev.off()
+  #dev.off()
 }  
 
 plots <- list()
