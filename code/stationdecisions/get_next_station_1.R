@@ -15,20 +15,25 @@ get_next_station_1 <- function(stationId = test.id,
     filter(!name %in% already_sampled) %>%
     filter(value>0) %>%
     slice_min(value) %>%
-    select(name) %>%
+    dplyr::select(name) %>%
     as.character()
   
   furthest_w_unsampled <- longs %>%
     filter(Id != stationId) %>%
     filter(!Id %in% already_sampled) %>%
     slice_min(Lon) %>%
-    select(Id) %>%
+    dplyr::select(Id) %>%
     as.character()
   
   if(closest == furthest_w_unsampled){
     selection = closest} else{
-      depth1 <- depths %>% filter(Id == closest) %>% select(DEPTH_EFH)
-      depth2 <- depths %>% filter(Id == furthest_w_unsampled) %>% select(DEPTH_EFH)
+      depth1 <- depths %>% 
+        filter(Id == closest) %>% 
+        dplyr::select(DEPTH_EFH)
+      depth2 <- depths %>% 
+        filter(Id == furthest_w_unsampled) %>% 
+        dplyr::select(DEPTH_EFH)
+      
       ind <- which.min(c(depth1,depth2))
       selection <- c(closest,furthest_w_unsampled)[ind]
     }
