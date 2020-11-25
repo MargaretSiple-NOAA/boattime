@@ -34,8 +34,8 @@ locations <- h %>%
   rowid_to_column("order")
 
 loc_sf <- sf::st_as_sf(x = locations,
-                          coords = c("lon","lat"),
-                          crs = 4326, agr = "constant")
+                       coords = c("lon","lat"),
+                       crs = 4326, agr = "constant")
 
 locations %>%
   ggplot() +
@@ -54,8 +54,8 @@ get_map <- function(year, hauldata = h){
     arrange(DATE, HAULJOIN) %>%
     rowid_to_column("order")
   locs_sf <- sf::st_as_sf(x = locs,
-                         coords = c("lon","lat"),
-                         crs = 4326, agr = "constant")
+                          coords = c("lon","lat"),
+                          crs = 4326, agr = "constant")
   mapplot <- locs %>%
     ggplot() +
     geom_sf(data = locs_sf) + 
@@ -140,7 +140,15 @@ for(i in 1:length(years_vec)){
 }
 
 png(filename = here::here("figures","DistanceDistributions.png"),
-                          width = 12, height = 10,
-                          units = 'in',res = 150)
+    width = 12, height = 10,
+    units = 'in',res = 150)
 wrap_plots(plots)
 dev.off()
+
+# Get info for each of the previous years' cruises. How many boats? How many stations? Total number of survey days?
+
+histtable <- h %>% group_by(YEAR) %>%
+  summarize(ndays = max(DATE)-min(DATE),
+            nboats = length(unique(VESSEL)),
+            nstations = length(unique(STATIONID)),
+            nhauls = length(unique(HAULJOIN))) 
