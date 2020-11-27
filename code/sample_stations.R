@@ -38,7 +38,7 @@ load(here::here(
 # 3. Pick solution and get survey information -----------------------------
 # * 3.1 Query which solution to use based on 1-boat, 15 strata solution----
 # Important! Number of boats.
-nboats <- 3
+nboats <- 2
 
 idx <- settings$id[which(settings$strata == 15 & settings$boat == nboats)]
 
@@ -120,7 +120,8 @@ field_sf <- sf::st_as_sf(
   crs = 4326
 )
 
-# Assign stations to different boats in the survey
+
+# * 3.5 Assign boats to stations randomly ---------------------------------
 if (nboats == 2) {
   print("2-boat solution")
   nperboat <- nrow(survey_pts) / 2
@@ -162,8 +163,9 @@ survey_sf <- sf::st_as_sf(
 )
 
 # Pairwise distances between survey points in km
+# st_distance() provides distances in m
 distance_matrix_km <- matrix(as.numeric(st_distance(survey_sf) / 1000),
-  nrow = length(sample_vec)
+  nrow = nrow(survey_sf)
 )
 
 rownames(distance_matrix_km) <-
@@ -182,8 +184,8 @@ distance_df <- as.data.frame(distance_matrix_km) %>%
 # 4.  Calculate total survey time ------------------------------------------
 # According to N Laman, on average each boat does 4.7 tows/day
 # Roughest estimate (274 survey points)
-nrow(survey_pts) / 4.2 # Wayne
-nrow(survey_pts) / 4.7 # Ned
+nrow(survey_pts) / 4.2 / nboats # Wayne
+nrow(survey_pts) / 4.7 / nboats # Ned
 
 # Sample each station, starting from furthest west point and sampling the nearest station next:
 west_to_east <- survey_pts %>%
@@ -212,6 +214,8 @@ y <- get_next_station_1(stationId = x, already_sampled = c(western_end$Id, x))
 points(filter(survey_pts, Id == y)[, c("E_km", "N_km")], col = "green")
 
 z <- get_next_station_1(stationId = y, already_sampled = c(western_end$Id, x, y))
+
+# Double check to make sure order of points makes sense:
 points(filter(survey_pts, Id == z)[, c("E_km", "N_km")], col = "yellow")
 
 # Setup survey plan
@@ -330,6 +334,7 @@ nnplot <- nearest_neighbor %>%
 png(filename = here::here("figures", "Optimal.png"), width = 6, height = 5, units = "in", res = 150)
 nnplot
 dev.off()
+
 # Other notes -------------------------------------------------------------
 # 1 knot = 1.852 km/hr
 
