@@ -75,6 +75,9 @@ get_map <- function(year, hauldata = h){
 
 #get_map(year = 1990)
 
+
+# 4. Plot the distribution of distances to closest points------------------
+
 get_dist <- function(year, hauldata = h){
   locs <- hauldata %>%
     filter(YEAR == year) %>% 
@@ -124,7 +127,7 @@ get_dist(year = 1990)
 years_vec <- c(1990, 1993, 1996, 1999, 2001, 2003, 2005, 2007, 2009, 2011, 2013, 2015, 2017, 2019)
 
 
-# Save all the figures ----------------------------------------------------
+# 5. Save figures ---------------------------------------------------------
 
 for(i in 1:length(years_vec)){
   print(i)
@@ -158,3 +161,17 @@ histtable <- h %>% group_by(YEAR) %>%
             nboats = length(unique(VESSEL)),
             nstations = length(unique(STATIONID)),
             nhauls = length(unique(HAULJOIN))) 
+histtable
+
+
+# 6. Get distance matrices etc for historical surveys ---------------------
+#Each vessel gets one distance matrix for all the sites it visited
+
+# list of distance matrices for a single year
+year <- years_vec[1]
+yeardat <- h %>% filter(YEAR==year)
+
+distance_list <- yeardat %>% 
+  group_by(VESSEL) %>% 
+  group_split() %>%
+  map( .f = get_distances)
