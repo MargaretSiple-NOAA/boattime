@@ -166,6 +166,7 @@ histtable
 
 # 6. Get distance matrices etc for historical surveys ---------------------
 #Each vessel gets one distance matrix for all the sites it visited
+source(here::here("code", "get_distances.R"))
 
 # list of distance matrices for a single year
 year <- years_vec[1]
