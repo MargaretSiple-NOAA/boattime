@@ -15,8 +15,6 @@ library(sf)   # distances
 source(here::here("code","lengthen_pal.R"))
 
 
-
-
 # 2. Load optimized survey design -----------------------------------------
 
 # * Spatial grid ----------------------------------------------------------
@@ -35,8 +33,9 @@ load(here::here("..","Optimal_Allocation_GoA-master",
 
 # 3. Pick solution and get survey information -----------------------------
 # * 3.1 Query which solution to use based on 1-boat, 15 strata solution----
-idx <- settings$id[which(settings$strata == 15 & settings$boat == 1)]
-idx2 <- settings$id[which(settings$strata == 15 & settings$boat == 2)]
+
+nboats = 2
+idx <- settings$id[which(settings$strata == 15 & settings$boat == nboats)]
 
 # * 3.2 Extract survey information ----------------------------------------
 strata_no <- as.numeric(as.character(strata_list[[idx]]$Stratum)) #unique stratum "ID"
@@ -98,6 +97,17 @@ field_sf <- sf::st_as_sf(x = Extrapolation_depths,
 survey_sf <- sf::st_as_sf(x = survey_pts,
                           coords = c("Lon","Lat"),
                           crs = 4326, agr = "constant")
+if(nboats==2){
+  print("2-boat solution")
+  nperboat <- nrow(survey_pts)/2
+  if(!is.integer(nperboat)){
+    n1 = floor(nperboat)
+    n2 = ceiling(nperboat)
+  }else (n1 = n2 = nperboat)
+  bb <- c(rep(1,times = n1),rep(2,times = n2))
+  survey_pts <- survey_pts %>% 
+    mutate(whichboat = sample(x = bb, size = n1+n2, replace = FALSE))
+}
 
 # Pairwise distances between survey points in km
 distance_matrix_km <- matrix(as.numeric(st_distance(survey_sf) / 1000),
@@ -117,7 +127,7 @@ distance_df <- as.data.frame(distance_matrix_km) %>%
 
 
 #4.  Calculate total survey time ------------------------------------------
-#According to N Laman, on average they do 4.7 tows/day
+#According to N Laman, on average each boat does 4.7 tows/day
 # Roughest estimate (274 survey points)
 nrow(survey_pts)/4.2 #Wayne
 nrow(survey_pts)/4.7 #Ned
