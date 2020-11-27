@@ -7,7 +7,7 @@ library(sp)
 library(raster)
 library(RColorBrewer)
 library(tidyverse)
-library(sf)   # distances
+library(sf)
 
 
 # 1. Load helpers ---------------------------------------------------------
@@ -33,11 +33,12 @@ load(here::here("..","Optimal_Allocation_GoA-master",
 
 # 3. Pick solution and get survey information -----------------------------
 # * 3.1 Query which solution to use based on 1-boat, 15 strata solution----
+# Important! Number of boats.
+nboats = 3
 
-nboats = 2
 idx <- settings$id[which(settings$strata == 15 & settings$boat == nboats)]
 
-# * 3.2 Extract survey information ----------------------------------------
+# * 3.2 Extract solution --------------------------------------------------
 strata_no <- as.numeric(as.character(strata_list[[idx]]$Stratum)) #unique stratum "ID"
 nh <- strata_list[[idx]]$Allocation #allocated effort across strata (n of locations to visit)
 nstrata <- length(nh)
@@ -94,9 +95,7 @@ field_sf <- sf::st_as_sf(x = Extrapolation_depths,
                          coords = c("Lon","Lat"),
                          crs = 4326)
 
-survey_sf <- sf::st_as_sf(x = survey_pts,
-                          coords = c("Lon","Lat"),
-                          crs = 4326, agr = "constant")
+# Assign stations to different boats in the survey
 if(nboats==2){
   print("2-boat solution")
   nperboat <- nrow(survey_pts)/2
@@ -108,6 +107,26 @@ if(nboats==2){
   survey_pts <- survey_pts %>% 
     mutate(whichboat = sample(x = bb, size = n1+n2, replace = FALSE))
 }
+
+if(nboats==3){
+  print("3-boat solution")
+  nperboat <- nrow(survey_pts)/3
+  if(!is.integer(nperboat)){
+    n1 = floor(nperboat)
+    n2 = ceiling(nperboat)
+    n3 = nrow(survey_pts) - (n1+n2)
+  }else (n1 = n2 = n3 = nperboat)
+  bb <- c(rep(1,times = n1),
+          rep(2,times = n2),
+          rep(3,times = n3))
+  survey_pts <- survey_pts %>% 
+    mutate(whichboat = sample(x = bb, size = n1+n2+n3, replace = FALSE))
+}
+
+# Turn survey points into sf object for getting distances
+survey_sf <- sf::st_as_sf(x = survey_pts,
+                          coords = c("Lon","Lat"),
+                          crs = 4326, agr = "constant")
 
 # Pairwise distances between survey points in km
 distance_matrix_km <- matrix(as.numeric(st_distance(survey_sf) / 1000),
