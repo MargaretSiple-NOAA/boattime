@@ -8,7 +8,8 @@ library(TSP)
 get_tsp_soln <- function(x){
   # x is a distance matrix
   tsp <- TSP(x)
-  tour <- solve_TSP(x = tsp, control = "nearest_insertion")
+  tour <- solve_TSP(x = tsp, control = "nearest_insertion") 
+  # default: arbitrary insertion with two_opt refinement
   tour_df <- data.frame(site = names(tour),tsp_order = as.numeric(tour))
   return(tour_df)
 }
