@@ -295,7 +295,10 @@ for(b in 1:nboats){
 
 length(df_list)
 
-
+# TO DO: 
+# Add function to plot stations and station order from dataframe d3
+# Look at why cumulative distances are so long! Boooo
+# Maybe plot cumulative dis
 
 
 
