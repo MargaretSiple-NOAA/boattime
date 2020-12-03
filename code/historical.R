@@ -148,11 +148,11 @@ for(i in 1:length(years_vec)){
 }
 
 # This part takes a while:
-png(filename = here::here("figures","DistanceDistributions.png"),
-    width = 12, height = 10,
-    units = 'in',res = 150)
+# png(filename = here::here("figures","DistanceDistributions.png"),
+#     width = 12, height = 10,
+#     units = 'in',res = 150)
 wrap_plots(plots)
-dev.off()
+# dev.off()
 
 # Get info for each of the previous years' cruises. How many boats? How many stations? Total number of survey days?
 
@@ -161,7 +161,13 @@ histtable <- h %>% group_by(YEAR) %>%
             nboats = length(unique(VESSEL)),
             nstations = length(unique(STATIONID)),
             nhauls = length(unique(HAULJOIN))) 
+
 histtable
+
+write.table(
+  histtable, file = "HistoricalHauls.tbl"
+)
+
 
 
 # 6. Get distance matrices etc for historical surveys ---------------------
@@ -169,10 +175,40 @@ histtable
 source(here::here("code", "get_distances.R"))
 
 # list of distance matrices for a single year
-year <- years_vec[1]
-yeardat <- h %>% filter(YEAR==year)
+histtable <- histtable %>% add_column(cumudistboat1 = NA,
+                                      cumudistboat2 = NA,
+                                      cumudistboat3 = NA,
+                                      cumudistboat4 = NA,
+                                      maxdistboat1 = NA,
+                                      maxdistboat2 = NA,
+                                      maxdistboat3 = NA,
+                                      maxdistboat4 = NA)
 
+
+for(i in 1:nrow(histtable)){
+year <- years_vec[i]
+yeardat <- h %>% filter(YEAR==year)
 distance_list <- yeardat %>% 
   group_by(VESSEL) %>% 
   group_split() %>%
   map( .f = get_distances)
+histtable$cumudistboat1[i] <- distance_list[[1]]$cumu_distance
+histtable$cumudistboat2[i] <- distance_list[[2]]$cumu_distance
+if(length(distance_list)==3){
+  histtable$cumudistboat3[i] <- distance_list[[3]]$cumu_distance
+}
+if(length(distance_list)==4){
+  histtable$cumudistboat4[i] <- distance_list[[4]]$cumu_distance
+}
+
+histtable$maxdistboat1[i] <- distance_list[[1]]$max_distance
+histtable$maxdistboat2[i] <- distance_list[[2]]$max_distance
+if(length(distance_list)>=3){
+  histtable$maxdistboat3[i] <- distance_list[[3]]$max_distance
+}
+if(length(distance_list)==4){
+  histtable$maxdistboat4[i] <- distance_list[[4]]$max_distance
+}
+}
+
+write.csv(histtable,file = "historical2.csv",row.names = FALSE)
