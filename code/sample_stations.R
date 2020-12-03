@@ -93,7 +93,7 @@ strata_pal <- lengthen_pal(
 )
 
 plot(goa_ras,
-  col = strata_pal
+     col = strata_pal
 )
 
 points(Extrapolation_depths[
@@ -128,8 +128,10 @@ if (nboats == 2) {
   if (!is.integer(nperboat)) {
     n1 <- floor(nperboat)
     n2 <- ceiling(nperboat)
+    n3 <- 0
   } else {
     (n1 <- n2 <- nperboat)
+    n3 <- 0
   }
   bb <- c(rep(1, times = n1), rep(2, times = n2))
   survey_pts <- survey_pts %>%
@@ -156,6 +158,11 @@ if (nboats == 3) {
 }
 
 # Turn survey points into sf object for getting distances
+survey_pts_boat1 <-survey_pts %>% filter(whichboat == 1)
+survey_pts_boat2 <-survey_pts %>% filter(whichboat == 2)
+
+#survey_pts <- survey_pts_boat1
+
 survey_sf <- sf::st_as_sf(
   x = survey_pts,
   coords = c("Lon", "Lat"),
@@ -165,7 +172,7 @@ survey_sf <- sf::st_as_sf(
 # Pairwise distances between survey points in km
 # st_distance() provides distances in m
 distance_matrix_km <- matrix(as.numeric(st_distance(survey_sf) / 1000),
-  nrow = nrow(survey_sf)
+                             nrow = nrow(survey_sf)
 )
 
 rownames(distance_matrix_km) <-
@@ -188,9 +195,8 @@ nrow(survey_pts) / 4.2 / nboats # Wayne
 nrow(survey_pts) / 4.7 / nboats # Ned
 
 # Sample each station, starting from furthest west point and sampling the nearest station next:
-west_to_east <- survey_pts %>%
-  arrange(Lon)
-western_end <- west_to_east %>%
+western_end <- survey_pts %>%
+  arrange(Lon) %>%
   slice(1)
 
 # Check that this is the westernmost survey point:
@@ -218,48 +224,82 @@ z <- get_next_station_1(stationId = y, already_sampled = c(western_end$Id, x, y)
 # Double check to make sure order of points makes sense:
 points(filter(survey_pts, Id == z)[, c("E_km", "N_km")], col = "yellow")
 
-# Setup survey plan
-plan1 <- rep(NA, times = length(sample_vec))
-plan1[1] <- western_end$Id
 
-for (i in 2:length(sample_vec)) {
-  plan1[i] <- get_next_station_1(
-    stationId = plan1[i - 1],
-    already_sampled = plan1[1:i]
+
+
+# Setup survey plan for multiple boats
+
+df_list <- list()
+
+for(b in 1:nboats){
+# Boat 1
+  surv_pts_boat <- survey_pts %>% 
+  filter(whichboat == b)
+
+  western_end <- surv_pts_boat %>%
+    arrange(Lon) %>%
+    slice(1)
+  
+  sample_size <- case_when(b==1 ~ n1,
+                           b==2 ~ n2,
+                           b==3 ~ n3)
+  boat_plan <- rep(NA, times = sample_size)
+  boat_plan[1] <- western_end$Id
+  
+  # Get Extrapolation depths rows just for that one boat
+  edepths <- Extrapolation_depths %>% 
+    filter(Id %in% surv_pts_boat$Id)
+  
+  for (i in 2:length(boat_plan)) {
+    boat_plan[i] <- get_next_station_1(
+      stationId = boat_plan[i - 1],
+      already_sampled = boat_plan[1:i],
+      depths = edepths[,c("Id","DEPTH_EFH")],
+      longs = edepths[,c("Id","Lon")]
+    )
+  }
+  
+  d1 <- data.frame(Id = boat_plan, nwd_order = 1:sample_size)
+  
+  d2 <- Extrapolation_depths %>%
+    mutate(Id = as.character(Id)) %>%
+    right_join(d1, Extrapolation_depths, by = "Id")
+  
+  d3 <- d2 %>%
+    arrange(nwd_order) %>%
+    add_column(
+      distance_from_prev = NA,
+      cumu_distance = 0
+    )
+  d3$distance_from_prev[1] <- 0
+  
+  for (i in 2:nrow(d3)) {
+    d3$distance_from_prev[i] <- distance_df %>%
+      filter(surveyId == d3$Id[i], name == d3$Id[i - 1]) %>%
+      dplyr::select(value) %>%
+      as.numeric()
+    d3$cumu_distance[i] <- sum(d3$distance_from_prev[1:i])
+  }
+  
+  tail(d3)
+  
+  cat(
+    "max survey distance (km) \n",
+    max(d3$cumu_distance), "\n ",
+    "max inter-station distance (km) \n",
+    max(d3$distance_from_prev), "\n"
   )
+  
+  df_list[[b]] <- d3
 }
 
-d1 <- data.frame(Id = plan1, nwd_order = 1:length(plan1))
+length(df_list)
 
-d2 <- Extrapolation_depths %>%
-  mutate(Id = as.character(Id)) %>%
-  right_join(d1, Extrapolation_depths, by = "Id")
 
-d3 <- d2 %>%
-  arrange(nwd_order) %>%
-  add_column(
-    distance_from_prev = NA,
-    cumu_distance = 0
-  )
-d3$distance_from_prev[1] <- 0
 
-for (i in 2:nrow(d3)) {
-  d3$distance_from_prev[i] <- distance_df %>%
-    filter(surveyId == d3$Id[i], name == d3$Id[i - 1]) %>%
-    dplyr::select(value) %>%
-    as.numeric()
-  d3$cumu_distance[i] <- sum(d3$distance_from_prev[1:i])
-}
 
-tail(d3)
-
-cat(
-  "max survey distance (km) \n",
-  max(d3$cumu_distance)
-)
 
 # Plot survey path
-
 attempt1 <- ggplot() +
   geom_sf(data = field_sf) +
   geom_path(data = d3, aes(x = Lon, y = Lat, colour = nwd_order)) +
@@ -324,10 +364,10 @@ nnplot <- nearest_neighbor %>%
   xlab("Distance (km)") +
   ylab("Frequency") +
   scale_fill_discrete("",
-    labels = c(
-      "Nearest station",
-      "Second-nearest station"
-    )
+                      labels = c(
+                        "Nearest station",
+                        "Second-nearest station"
+                      )
   )
 
 
