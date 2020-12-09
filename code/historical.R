@@ -102,11 +102,19 @@ get_dist <- function(year, hauldata = h){
     arrange(value) %>%
     group_by(surveyId) %>%
     summarize(nn1 = nth(value,n = 2), # min distance will always be 0
-              nn2 = nth(value,n = 3))
-  nnlabs <- c("Nearest neighbor","Second-nearest neighbor")
-  names(nnlabs) <- c("nn1","nn2")
+              nn2 = nth(value,n = 3)) %>%
+    add_column(year = year)
   
-  nndist <- nearest_neighbor %>%
+  return(nearest_neighbor)
+}
+
+
+get_dist(year = 1990)
+
+plot_dist <- function(nearest_df){
+  # nearest_df is a dataframe with the columns 'surveyId', 'nn1', 'nn2'
+  yrlab <- nearest_df$year[1]
+  nndist <- nearest_df %>%
     pivot_longer(cols = nn1:nn2) %>%
     ggplot(aes(x = value, fill = name)) +
     geom_histogram(alpha = 0.2, binwidth = 5, position = "identity") + 
@@ -115,28 +123,26 @@ get_dist <- function(year, hauldata = h){
     scale_fill_discrete("",
                         labels = c("Nearest station",
                                    "Second-nearest station")) +
-    labs(title = paste0("Year = ",year)) +
+    labs(title = paste0("Year = ", yrlab)) +
     theme(legend.position = "none") +
     xlim(c(0, 80))
   return(nndist)
 }
 
-
-get_dist(year = 1990)
-
+plot_dist(nearest_df = get_dist(1990))
 years_vec <- c(1990, 1993, 1996, 1999, 2001, 2003, 2005, 2007, 2009, 2011, 2013, 2015, 2017, 2019)
+
 
 
 # 5. Save figures ---------------------------------------------------------
 
 for(i in 1:length(years_vec)){
   print(i)
-  unique_year = years_vec[i]
+  unique_year <- years_vec[i]
   map1 <- get_map(year = unique_year)
   dist1 <- get_dist(year = unique_year)
-  #png(filename = here::here("figures",paste0("Year_",unique_year,".png")),width = 10, height = 6, units = 'in',res = 150)
+  plot1 <- plot_dist(nearest_df = dist1)
   map1 + dist1 + plot_layout(ncol = 2, widths = c(2,1))
-  #dev.off()
 }  
 
 plots <- list()
