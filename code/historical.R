@@ -111,6 +111,7 @@ get_dist <- function(year, hauldata = h){
 
 get_dist(year = 1990)
 
+
 plot_dist <- function(nearest_df){
   # nearest_df is a dataframe with the columns 'surveyId', 'nn1', 'nn2'
   yrlab <- nearest_df$year[1]
@@ -133,9 +134,74 @@ plot_dist(nearest_df = get_dist(1990))
 years_vec <- c(1990, 1993, 1996, 1999, 2001, 2003, 2005, 2007, 2009, 2011, 2013, 2015, 2017, 2019)
 
 
+# * 4.1 combine distance data ---------------------------------------------
+# This takes a minute
+dists_allyrs <- years_vec %>% 
+  map_df(~ get_dist(.x))
+
+load(here::here("data","processed","nearest_neighbors_optimal.RData"))
+dists_optimal <- nearest_neighbor
+
+nlabs <- c(nn1 = "Nearest neighbor", nn2 = "Second-nearest neighbor")
+
+b1 <- dists_allyrs %>% 
+  pivot_longer(cols = nn1:nn2) %>%
+  filter(name == "nn1") %>%
+  ggplot(aes(x=year, y = value, group = year)) +
+  geom_boxplot() +
+  ylab("Distance (km)") +
+  facet_wrap(~name, labeller = labeller(name = nlabs))
+
+b2 <- dists_allyrs %>% 
+  pivot_longer(cols = nn1:nn2) %>%
+  filter(name == "nn2") %>%
+  ggplot(aes(x=year, y = value, group = year)) +
+  geom_boxplot() +
+  ylab("Distance (km)") +
+  facet_wrap(~name, labeller = labeller(name = nlabs))
+
+
+o1 <- dists_optimal %>%
+  pivot_longer(cols = nn1:nn2) %>%
+  filter(name == "nn1") %>%
+  ggplot(aes(x=year, y = value, group = year)) +
+  geom_boxplot(color = 'blue') +
+  xlab("") + 
+  ylab("") +
+  facet_wrap(~name, labeller = labeller(name = nlabs)) +
+  theme(axis.text.y = element_blank())
+
+o2 <- dists_optimal %>%
+  pivot_longer(cols = nn1:nn2) %>%
+  filter(name == "nn2") %>%
+  ggplot(aes(x=year, y = value, group = year)) +
+  geom_boxplot(color = 'blue') +
+  xlab("") + 
+  ylab("") +
+  facet_wrap(~name, labeller = labeller(name = nlabs)) +
+  theme(axis.text.y = element_blank())
+
+
+# patchwork
+combined <- b1 + o1 + b2 + o2
+
+# Set y limits to same among patchwork combos
+p_ranges_y <- c(ggplot_build(combined[[1]])$layout$panel_scales_y[[1]]$range$range,
+                ggplot_build(combined[[2]])$layout$panel_scales_y[[1]]$range$range)
+
+
+# Save boxplots
+png("figures/Boxplot1.png",width = 8, height = 5, units = 'in', res = 200)
+
+combined + plot_layout(nrow = 1, widths = c(7,1,7,1)) & 
+  ylim(min(p_ranges_y), max(p_ranges_y)) 
+
+dev.off()
+
 
 # 5. Save figures ---------------------------------------------------------
 
+# Side by side maps and histograms
 for(i in 1:length(years_vec)){
   print(i)
   unique_year <- years_vec[i]
@@ -143,22 +209,8 @@ for(i in 1:length(years_vec)){
   dist1 <- get_dist(year = unique_year)
   plot1 <- plot_dist(nearest_df = dist1)
   map1 + dist1 + plot_layout(ncol = 2, widths = c(2,1))
-}  
-
-plots <- list()
-for(i in 1:length(years_vec)){
-  print(i)
-  unique_year = years_vec[i]
-  dist1 <-  get_dist(year = unique_year)
-  plots[[i]] <- dist1
 }
 
-# This part takes a while:
-# png(filename = here::here("figures","DistanceDistributions.png"),
-#     width = 12, height = 10,
-#     units = 'in',res = 150)
-wrap_plots(plots)
-# dev.off()
 
 # Get info for each of the previous years' cruises. How many boats? How many stations? Total number of survey days?
 
@@ -192,29 +244,29 @@ histtable <- histtable %>% add_column(cumudistboat1 = NA,
 
 
 for(i in 1:nrow(histtable)){
-year <- years_vec[i]
-yeardat <- h %>% filter(YEAR==year)
-distance_list <- yeardat %>% 
-  group_by(VESSEL) %>% 
-  group_split() %>%
-  map( .f = get_distances)
-histtable$cumudistboat1[i] <- distance_list[[1]]$cumu_distance
-histtable$cumudistboat2[i] <- distance_list[[2]]$cumu_distance
-if(length(distance_list)==3){
-  histtable$cumudistboat3[i] <- distance_list[[3]]$cumu_distance
-}
-if(length(distance_list)==4){
-  histtable$cumudistboat4[i] <- distance_list[[4]]$cumu_distance
-}
-
-histtable$maxdistboat1[i] <- distance_list[[1]]$max_distance
-histtable$maxdistboat2[i] <- distance_list[[2]]$max_distance
-if(length(distance_list)>=3){
-  histtable$maxdistboat3[i] <- distance_list[[3]]$max_distance
-}
-if(length(distance_list)==4){
-  histtable$maxdistboat4[i] <- distance_list[[4]]$max_distance
-}
+  year <- years_vec[i]
+  yeardat <- h %>% filter(YEAR==year)
+  distance_list <- yeardat %>% 
+    group_by(VESSEL) %>% 
+    group_split() %>%
+    map( .f = get_distances)
+  histtable$cumudistboat1[i] <- distance_list[[1]]$cumu_distance
+  histtable$cumudistboat2[i] <- distance_list[[2]]$cumu_distance
+  if(length(distance_list)==3){
+    histtable$cumudistboat3[i] <- distance_list[[3]]$cumu_distance
+  }
+  if(length(distance_list)==4){
+    histtable$cumudistboat4[i] <- distance_list[[4]]$cumu_distance
+  }
+  
+  histtable$maxdistboat1[i] <- distance_list[[1]]$max_distance
+  histtable$maxdistboat2[i] <- distance_list[[2]]$max_distance
+  if(length(distance_list)>=3){
+    histtable$maxdistboat3[i] <- distance_list[[3]]$max_distance
+  }
+  if(length(distance_list)==4){
+    histtable$maxdistboat4[i] <- distance_list[[4]]$max_distance
+  }
 }
 
 write.csv(histtable,file = "historical2.csv",row.names = FALSE)
