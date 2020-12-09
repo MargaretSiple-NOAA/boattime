@@ -186,7 +186,15 @@ rownames(distance_matrix_km) <-
 distance_df <- as.data.frame(distance_matrix_km) %>%
   add_column(surveyId = colnames(distance_matrix_km)) %>%
   pivot_longer(cols = colnames(distance_matrix_km))
+nearest_neighbor <- distance_df %>%
+  arrange(value) %>%
+  group_by(surveyId) %>%
+  summarize(nn1 = nth(value,n = 2), # min distance will always be 0
+            nn2 = nth(value,n = 3)) %>%
+  add_column(year = "optimal")
 
+
+save(nearest_neighbor,file = "data/processed/nearest_neighbors_optimal.RData")
 
 # 4.  Calculate total survey time ------------------------------------------
 # According to N Laman, on average each boat does 4.7 tows/day
