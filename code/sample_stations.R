@@ -110,7 +110,8 @@ survey_pts <- Extrapolation_depths[
   sample_vec,
   c(
     "Lon", "Lat", "E_km", "N_km",
-    "Id", "stratum", "trawlable"
+    "Id", "stratum", "trawlable",
+    "DEPTH_EFH"
   )
 ]
 
@@ -122,6 +123,8 @@ field_sf <- sf::st_as_sf(
 
 
 # * 3.5 Assign boats to stations randomly ---------------------------------
+depth_quants <- quantile(survey_pts$DEPTH_EFH)
+
 if (nboats == 2) {
   print("2-boat solution")
   nperboat <- nrow(survey_pts) / 2
@@ -135,7 +138,10 @@ if (nboats == 2) {
   }
   bb <- c(rep(1, times = n1), rep(2, times = n2))
   survey_pts <- survey_pts %>%
-    mutate(whichboat = sample(x = bb, size = n1 + n2, replace = FALSE))
+    #assign stations to boats by depth:
+    mutate(whichboat = ifelse(DEPTH_EFH < depth_quants["50%"], 1, 2))
+    #assign stations to boats randomly:
+  # mutate(whichboat = sample(x = bb, size = n1 + n2,replace = FALSE))
 }
 
 if (nboats == 3) {
@@ -154,7 +160,14 @@ if (nboats == 3) {
     rep(3, times = n3)
   )
   survey_pts <- survey_pts %>%
-    mutate(whichboat = sample(x = bb, size = n1 + n2 + n3, replace = FALSE))
+    # assign stations to boats by depth:
+    mutate(whichboat = case_when(DEPTH_EFH < depth_quants["25%"] ~ 1,
+                                 DEPTH_EFH > depth_quants["25%"] &
+                                 DEPTH_EFH < depth_quants["75%"] ~ 2,
+                                 DEPTH_EFH > depth_quants["75%"] ~ 3))
+    # assign boats randomly: 
+    # mutate(whichboat = sample(x = bb, size = n1 + n2 + n3,
+   #                           replace = FALSE)) #randomly assign stations to boats 1 and 2
 }
 
 # Turn survey points into sf object for getting distances
