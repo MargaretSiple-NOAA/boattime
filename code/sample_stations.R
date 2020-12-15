@@ -171,8 +171,9 @@ if (nboats == 3) {
 }
 
 # Turn survey points into sf object for getting distances
-survey_pts_boat1 <-survey_pts %>% filter(whichboat == 1)
-survey_pts_boat2 <-survey_pts %>% filter(whichboat == 2)
+# don't think I need this part
+#survey_pts_boat1 <-survey_pts %>% filter(whichboat == 1)
+#survey_pts_boat2 <-survey_pts %>% filter(whichboat == 2)
 
 #survey_pts <- survey_pts_boat1
 
@@ -300,6 +301,7 @@ for(b in 1:nboats){
       dplyr::select(value) %>%
       as.numeric()
     d3$cumu_distance[i] <- sum(d3$distance_from_prev[1:i])
+    d3$boat <- b
   }
   
   tail(d3)
@@ -315,13 +317,28 @@ for(b in 1:nboats){
 }
 
 length(df_list)
+df_both <- do.call(rbind.data.frame, df_list)
 
 # TO DO: 
 # Add function to plot stations and station order from dataframe d3
-# Look at why cumulative distances are so long! Boooo
-# Maybe plot cumulative dis
 
+# Plot survey path (2 vessels)
 
+twoboats <- ggplot() +
+  geom_sf(data = field_sf) +
+  geom_path(data = df_list[[1]], aes(x = Lon, y = Lat, colour = nwd_order)) +
+  geom_point(data = df_list[[1]], aes(x = Lon, y = Lat, colour = nwd_order)) +
+  scale_colour_gradientn("Boat 1", colors = c('white', 'blue')) +
+  ggnewscale::new_scale_color() +
+  geom_path(data = df_list[[2]], aes(x = Lon, y = Lat, colour = nwd_order)) +
+  geom_point(data = df_list[[2]], aes(x = Lon, y = Lat, colour = nwd_order)) +
+  scale_colour_gradientn("Boat 2", colours = c("white", "red")) +
+  labs(title = "Nearest neighbor / furthest west") +
+  facet_wrap(~boat, nrow = 2)
+
+png("figures/ByDepth.png",width = 7, height = 8,units = "in",res = 200)
+twoboats
+dev.off()
 
 # Plot survey path
 attempt1 <- ggplot() +
