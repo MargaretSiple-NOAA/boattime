@@ -204,6 +204,8 @@ nearest_neighbor <- distance_df %>%
 
 save(nearest_neighbor,file = "data/processed/nearest_neighbors_optimal.RData")
 
+
+
 # 4.  Calculate total survey time ------------------------------------------
 # According to N Laman, on average each boat does 4.7 tows/day
 # Roughest estimate (274 survey points)
@@ -374,10 +376,6 @@ attempt1 + attempt2 + plot_layout(ncol = 1)
 
 # 5. Distribution of two closest stations for each station ----------------
 distance_df # distances between each pair
-# nearest_neighbor <- distance_df %>%
-#   select(surveyId) %>%
-#   distinct() %>%
-#   mutate(nene1 = function(x) filter(distance_df, surveyId==x) %>% value)
 
 nearest_neighbor <- distance_df %>%
   arrange(value) %>%
@@ -404,14 +402,52 @@ nnplot <- nearest_neighbor %>%
   )
 
 
-png(filename = here::here("figures", "Optimal.png"), width = 6, height = 5, units = "in", res = 150)
+#png(filename = here::here("figures", "Optimal.png"), width = 6, height = 5, units = "in", res = 150)
 nnplot
+#dev.off()
+
+
+
+
+#6.  Get images of two realizations of survey for Wayne et al. ---------------
+# Use the existing realization from above.
+
+
+realization1 <- 
+  ggplot() +
+  geom_sf(data = field_sf, colour = 'white') +
+  geom_point(data = survey_pts, aes(x = Lon, y = Lat),
+             pch = 21, colour = 'black', fill = 'white')
+
+sample_vec2 <- c()
+for (istrata in 1:nstrata) {
+  sample_vec2 <- c(
+    sample_vec2,
+    sample(
+      x = which(solution == strata_no[istrata]),
+      size = nh[istrata]
+    )
+  )
+}
+
+survey_pts2 <- Extrapolation_depths[
+  sample_vec2,
+  c(
+    "Lon", "Lat", "E_km", "N_km",
+    "Id", "stratum", "trawlable",
+    "DEPTH_EFH"
+  )
+]
+
+realization2 <- ggplot() +
+  geom_sf(data = field_sf, colour = 'white') +
+  geom_point(data = survey_pts2, aes(x = Lon, y = Lat),
+             pch = 21, colour = 'black', fill = 'white')
+
+png("figures/OptimizedDesigns.png",width = 12, height = 6, units = 'in',res = 200)
+realization1 + realization2
 dev.off()
 
-
-
-
-# Get images of two realizations of survey for Wayne et al. ---------------
 
 
 
