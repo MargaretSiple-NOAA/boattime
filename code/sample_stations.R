@@ -416,7 +416,8 @@ nnplot
 realization1 <- 
   ggplot() +
   geom_sf(data = field_sf, colour = 'white') +
-  geom_point(data = survey_pts, aes(x = Lon, y = Lat),
+  geom_point(data = filter(survey_pts, trawlable == TRUE),
+             aes(x = Lon, y = Lat),
              pch = 21, colour = 'black', fill = 'white')
 
 sample_vec2 <- c()
@@ -441,7 +442,8 @@ survey_pts2 <- Extrapolation_depths[
 
 realization2 <- ggplot() +
   geom_sf(data = field_sf, colour = 'white') +
-  geom_point(data = survey_pts2, aes(x = Lon, y = Lat),
+  geom_point(data = filter(survey_pts2, trawlable == TRUE),
+             aes(x = Lon, y = Lat),
              pch = 21, colour = 'black', fill = 'white')
 
 png("figures/OptimizedDesigns.png",width = 12, height = 6, units = 'in',res = 200)
