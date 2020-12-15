@@ -171,12 +171,6 @@ if (nboats == 3) {
 }
 
 # Turn survey points into sf object for getting distances
-# don't think I need this part
-#survey_pts_boat1 <-survey_pts %>% filter(whichboat == 1)
-#survey_pts_boat2 <-survey_pts %>% filter(whichboat == 2)
-
-#survey_pts <- survey_pts_boat1
-
 survey_sf <- sf::st_as_sf(
   x = survey_pts,
   coords = c("Lon", "Lat"),
@@ -223,8 +217,6 @@ western_end <- survey_pts %>%
 
 # Check that this is the westernmost survey point:
 points(western_end[, c("E_km", "N_km")], col = "red")
-
-
 
 
 
@@ -415,6 +407,13 @@ nnplot <- nearest_neighbor %>%
 png(filename = here::here("figures", "Optimal.png"), width = 6, height = 5, units = "in", res = 150)
 nnplot
 dev.off()
+
+
+
+
+# Get images of two realizations of survey for Wayne et al. ---------------
+
+
 
 # Other notes -------------------------------------------------------------
 # 1 knot = 1.852 km/hr
