@@ -213,6 +213,16 @@ combined + plot_layout(nrow = 1, widths = c(7, 1, 7, 1)) &
 dev.off()
 
 
+# Test whether distance distributions are different -----------------------
+ks.test(dists_allyrs$nn1, dists_optimal$nn1)
+ks.test(dists_allyrs$nn2, dists_optimal$nn2)
+
+# These tests are known to have tiny p-values even when the distributions look very similar. So not sure how helpful this is.
+wilcox.test(dists_allyrs$nn1, dists_optimal$nn1)
+wilcox.test(dists_allyrs$nn2, dists_optimal$nn2)
+
+
+
 # 5. Save figures ---------------------------------------------------------
 
 # Side by side maps and histograms
