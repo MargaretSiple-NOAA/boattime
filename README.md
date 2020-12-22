@@ -18,11 +18,13 @@ This repository uses outputs from Zack's Optimal Allocation repository: https://
 stationdecisions/ : contains functions for determining what station should be sampled "next"
 
 sample_stations.R : get survey order based on decision rules and make plots
+
 historical.R : load historical cruise data for comparison
+
 Process_AK_BTS_data_all_hauls_megsie.R : process raw historical haul data (from Lewis)
 
 ## Input
-This code is intended to work with any survey design (optimized or historical). For the optimized survey design part, this script draws from Zack's optimized GoA survey design, which is the full domain spatiotemporal optimization from model 11 ([Optimal_Allocation_GoA-master](https://github.com/zoyafuso-NOAA/Optimal_Allocation_GoA)). 
+This code is intended to work with any survey design (optimized or historical). For the optimized survey design part, this script draws from Zack's optimized GoA survey design, which is the full domain spatiotemporal optimization ([Optimal_Allocation_GoA-master](https://github.com/zoyafuso-NOAA/Optimal_Allocation_GoA) -- make sure you have an updated copy of this dataset for running the code). 
 
 
 ## Analysis flow
@@ -34,12 +36,16 @@ These include (so far):
 
 1. **Proximity and depth** (get_next_station_1.R) Between closest and furthest west unsampled station, pick the deeper one
 2. **Traveling Salesperson Problem** (tsp.R) Stations are sampled to minimize the total distance traveled, starting at the westernmost station
-
+3. **Proximity and depth, split boats by depth** (get_next_station_1.R, with boats assigned to stations by depth before the station order is determined) Boats are split by depth: if it's a two-boat survey, one boat visits all sites below the median bottom depth, the other visits all sites above the median bottom depth. If there are three boats, the boats are split up into <25th, 25-50th, and >50th percentiles of depth. Then each boat visits stations according to Method 1.
 
 ### Examine distances between stations
 The total distance traveled for a survey should be comparable between a given optimized design and the existing surveys. The sample_stations.R script gets a distance matrix for all the locations, and calculates the total distance traveled for a given order of locations. 
 
+### Comparing historical surveys to the new design
+Because the historical surveys chose stations based on many more factors than we can consider for a yet-to-be-carried-out survey (weather, boat technical issues, decision to lane boats or not), I also used the survey points from historical surveys as if they were new. I.e., pick out the map of stations visited by each boat, and fed them into the same "station choice" algorithm that I used for the optimized design. 
+
 ### Figures
 The figures generated in this script are saved in the figures/ directory. They include: 
 1) Maps of the Gulf with the whole field, plus all the sites that have been sampled in a given allocation, and 
-2) The distribution of distances from each point to its nearest neighbor and second-nearest neighbor.
+2) The distribution of distances from each point to its nearest neighbor and second-nearest neighbor
+3) Comparison of max inter-station distance and max cumulative distance between historical and optimized survey designs, using the same method for both.
