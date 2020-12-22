@@ -288,7 +288,7 @@ for (i in 1:nrow(histtable)) {
   if (length(distance_list) == 4) {
     histtable$cumudistboat4[i] <- distance_list[[4]]$cumu_distance
   }
-# max distances
+  # max distances
   histtable$maxdistboat1[i] <- distance_list[[1]]$max_distance
   histtable$maxdistboat2[i] <- distance_list[[2]]$max_distance
   if (length(distance_list) >= 3) {
@@ -304,188 +304,217 @@ write.csv(histtable, file = "historical2.csv", row.names = FALSE)
 
 # 7. Apply new method for station order to historical data ----------------
 # This is an attempt to make the new survey design more comparable to the historical ones-- apply the two methods to the sets of stations in the old survey designs and compare the distances between them.
-yrs_to_compare <- histtable %>% 
-  filter(nboats<=3) %>% 
-  select(YEAR) %>% 
+yrs_to_compare <- histtable %>%
+  filter(nboats <= 3) %>%
+  select(YEAR) %>%
   deframe()
 
 # Look thru yrs
 full_stat <- vector()
 
-for(y in 1:length(yrs_to_compare)){ #
-  
-yr_selection <- yrs_to_compare[y]
-h_yr <- h %>% filter(YEAR == yr_selection)
+for (y in 1:length(yrs_to_compare)) { #
 
-depth_quants <- quantile(h_yr$BOTTOM_DEPTH)
+  yr_selection <- yrs_to_compare[y]
+  h_yr <- h %>% filter(YEAR == yr_selection)
 
-h_yr <- h_yr %>%
-  # assign stations to boats by depth:
-  mutate(whichboat = case_when(BOTTOM_DEPTH  < depth_quants["25%"] ~ 1,
-                               BOTTOM_DEPTH  > depth_quants["25%"] &
-                               BOTTOM_DEPTH  < depth_quants["75%"] ~ 2,
-                               BOTTOM_DEPTH  > depth_quants["75%"] ~ 3))
+  depth_quants <- quantile(h_yr$BOTTOM_DEPTH)
 
-# A lot of this is code from sample_stations.R:
-nboats <- length(unique(h_yr$VESSEL))
-
-if (nboats == 2) {
-  print("2-boat solution")
-  nperboat <- nrow(h_yr) / 2
-  if (!is.integer(nperboat)) {
-    n1 <- floor(nperboat)
-    n2 <- ceiling(nperboat)
-    n3 <- 0
-  } else {
-    (n1 <- n2 <- nperboat)
-    n3 <- 0
-  }
-  bb <- c(rep(1, times = n1), rep(2, times = n2))
-  h_yr <- h_yr %>%
-    #assign stations to boats by depth:
-    mutate(whichboat = ifelse(BOTTOM_DEPTH <= depth_quants["50%"], 1, 2))  %>%
-    mutate(Id = 1:nrow(h_yr))
-  #assign stations to boats randomly:
-  # mutate(whichboat = sample(x = bb, size = n1 + n2,replace = FALSE))
-}
-
-if (nboats == 3) {
-  print("3-boat solution")
-  nperboat <- nrow(h_yr) / 3
-  if (!is.integer(nperboat)) {
-    n1 <- floor(nperboat)
-    n2 <- ceiling(nperboat)
-    n3 <- nrow(h_yr) - (n1 + n2)
-  } else {
-    (n1 <- n2 <- n3 <- nperboat)
-  }
-  bb <- c(
-    rep(1, times = n1),
-    rep(2, times = n2),
-    rep(3, times = n3)
-  )
   h_yr <- h_yr %>%
     # assign stations to boats by depth:
-    mutate(whichboat = case_when(BOTTOM_DEPTH < depth_quants["25%"] ~ 1,
-                                 BOTTOM_DEPTH >= depth_quants["25%"] &
-                                 BOTTOM_DEPTH < depth_quants["75%"] ~ 2,
-                                 BOTTOM_DEPTH >= depth_quants["75%"] ~ 3)) %>%
-    mutate(Id = 1:nrow(h_yr))
-  # assign boats randomly: 
-  # mutate(whichboat = sample(x = bb, size = n1 + n2 + n3,
-  #                           replace = FALSE)) #randomly assign stations to boats 1 and 2
-}
+    mutate(whichboat = case_when(
+      BOTTOM_DEPTH < depth_quants["25%"] ~ 1,
+      BOTTOM_DEPTH > depth_quants["25%"] &
+        BOTTOM_DEPTH < depth_quants["75%"] ~ 2,
+      BOTTOM_DEPTH > depth_quants["75%"] ~ 3
+    ))
 
-h_yr_sf <- sf::st_as_sf(
-  x = h_yr,
-  coords = c("lon", "lat"),
-  crs = 4326, agr = "constant"
-)
+  # A lot of this is code from sample_stations.R:
+  nboats <- length(unique(h_yr$VESSEL))
 
-# Pairwise distances between survey points in km
-# st_distance() provides distances in m
-distance_matrix_km <- matrix(as.numeric(st_distance(h_yr_sf) / 1000),
-                             nrow = nrow(h_yr_sf)
-)
+  if (nboats == 2) {
+    print("2-boat solution")
+    nperboat <- nrow(h_yr) / 2
+    if (!is.integer(nperboat)) {
+      n1 <- floor(nperboat)
+      n2 <- ceiling(nperboat)
+      n3 <- 0
+    } else {
+      (n1 <- n2 <- nperboat)
+      n3 <- 0
+    }
+    bb <- c(rep(1, times = n1), rep(2, times = n2))
+    h_yr <- h_yr %>%
+      # assign stations to boats by depth:
+      mutate(whichboat = ifelse(BOTTOM_DEPTH <= depth_quants["50%"], 1, 2)) %>%
+      mutate(Id = 1:nrow(h_yr))
+    # assign stations to boats randomly:
+    # mutate(whichboat = sample(x = bb, size = n1 + n2,replace = FALSE))
+  }
 
-rownames(distance_matrix_km) <-
-  colnames(distance_matrix_km) <-
-  h_yr_sf$Id
+  if (nboats == 3) {
+    print("3-boat solution")
+    nperboat <- nrow(h_yr) / 3
+    if (!is.integer(nperboat)) {
+      n1 <- floor(nperboat)
+      n2 <- ceiling(nperboat)
+      n3 <- nrow(h_yr) - (n1 + n2)
+    } else {
+      (n1 <- n2 <- n3 <- nperboat)
+    }
+    bb <- c(
+      rep(1, times = n1),
+      rep(2, times = n2),
+      rep(3, times = n3)
+    )
+    h_yr <- h_yr %>%
+      # assign stations to boats by depth:
+      mutate(whichboat = case_when(
+        BOTTOM_DEPTH < depth_quants["25%"] ~ 1,
+        BOTTOM_DEPTH >= depth_quants["25%"] &
+          BOTTOM_DEPTH < depth_quants["75%"] ~ 2,
+        BOTTOM_DEPTH >= depth_quants["75%"] ~ 3
+      )) %>%
+      mutate(Id = 1:nrow(h_yr))
+    # assign boats randomly:
+    # mutate(whichboat = sample(x = bb, size = n1 + n2 + n3,
+    #                           replace = FALSE)) #randomly assign stations to boats 1 and 2
+  }
 
-distance_df <- as.data.frame(distance_matrix_km) %>%
-  add_column(surveyId = colnames(distance_matrix_km)) %>%
-  pivot_longer(cols = colnames(distance_matrix_km))
+  h_yr_sf <- sf::st_as_sf(
+    x = h_yr,
+    coords = c("lon", "lat"),
+    crs = 4326, agr = "constant"
+  )
 
-western_end <- h_yr %>%
-  arrange(lon) %>%
-  slice(1)
+  # Pairwise distances between survey points in km
+  # st_distance() provides distances in m
+  distance_matrix_km <- matrix(as.numeric(st_distance(h_yr_sf) / 1000),
+    nrow = nrow(h_yr_sf)
+  )
 
-source(here::here("code", "stationdecisions", "get_next_station_1.R"))
+  rownames(distance_matrix_km) <-
+    colnames(distance_matrix_km) <-
+    h_yr_sf$Id
 
-test.id <- as.character(h_yr$Id[1])
+  distance_df <- as.data.frame(distance_matrix_km) %>%
+    add_column(surveyId = colnames(distance_matrix_km)) %>%
+    pivot_longer(cols = colnames(distance_matrix_km))
 
-df_list <- stat_list <- list()
-
-
-for(b in 1:nboats){
-  # Boat 1
-  h_yr_boat <- h_yr %>% 
-    filter(whichboat == b)
-  
-  western_end <- h_yr_boat %>%
+  western_end <- h_yr %>%
     arrange(lon) %>%
     slice(1)
 
-  sample_size <- nrow(h_yr_boat)
-  boat_plan <- rep(NA, times =sample_size )
-  boat_plan[1] <- western_end$Id
-  
-  # Get Extrapolation depths rows just for that one boat
-  # edepths <- Extrapolation_depths %>% 
-  #   filter(Id %in% surv_pts_boat$Id)
-  
-  for (i in 2:length(boat_plan)) {
-    boat_plan[i] <- get_next_station_1(
-      stationId = boat_plan[i - 1],
-      already_sampled = boat_plan[1:i],
-      depths = h_yr_boat[,c("Id","BOTTOM_DEPTH")],
-      longs = h_yr_boat[,c("Id","lon")]
-    )
-  }
-  
-  d1 <- data.frame(Id = boat_plan, nwd_order = 1:sample_size)
-  
-  d2 <- h_yr_boat %>%
-    mutate(Id = as.character(Id)) %>%
-    right_join(d1, by = "Id")
-  
-  d3 <- d2 %>%
-    arrange(nwd_order) %>%
-    add_column(
-      distance_from_prev = NA,
-      cumu_distance = 0
-    )
-  d3$distance_from_prev[1] <- 0
-  
-  for (i in 2:nrow(d3)) {
-    d3$distance_from_prev[i] <- distance_df %>%
-      filter(surveyId == d3$Id[i], name == d3$Id[i - 1]) %>%
-      dplyr::select(value) %>%
-      as.numeric()
-    d3$cumu_distance[i] <- sum(d3$distance_from_prev[1:i])
-    d3$boat <- b
-  }
-  
-  tail(d3)
-  
-  cat(
-    "max survey distance (km) \n",
-    max(d3$cumu_distance), "\n ",
-    "max inter-station distance (km) \n",
-    max(d3$distance_from_prev), "\n"
-  )
-  
-  stat_list[[b]] <- data.frame(max_surv_dist =  max(d3$cumu_distance), max_station_dist = max(d3$distance_from_prev), boat = b, year = yr_selection) 
-  
-  df_list[[b]] <- d3
-  
-}
+  source(here::here("code", "stationdecisions", "get_next_station_1.R"))
 
-length(df_list)
-df_both <- do.call(rbind.data.frame, df_list)
-stat_both <- do.call(rbind.data.frame, stat_list)
+  test.id <- as.character(h_yr$Id[1])
 
-full_stat <- rbind(full_stat, stat_both)
+  df_list <- stat_list <- list()
+
+
+  for (b in 1:nboats) {
+    # Boat 1
+    h_yr_boat <- h_yr %>%
+      filter(whichboat == b)
+
+    western_end <- h_yr_boat %>%
+      arrange(lon) %>%
+      slice(1)
+
+    sample_size <- nrow(h_yr_boat)
+    boat_plan <- rep(NA, times = sample_size)
+    boat_plan[1] <- western_end$Id
+
+    # Get Extrapolation depths rows just for that one boat
+    # edepths <- Extrapolation_depths %>%
+    #   filter(Id %in% surv_pts_boat$Id)
+
+    for (i in 2:length(boat_plan)) {
+      boat_plan[i] <- get_next_station_1(
+        stationId = boat_plan[i - 1],
+        already_sampled = boat_plan[1:i],
+        depths = h_yr_boat[, c("Id", "BOTTOM_DEPTH")],
+        longs = h_yr_boat[, c("Id", "lon")]
+      )
+    }
+
+    d1 <- data.frame(Id = boat_plan, nwd_order = 1:sample_size)
+
+    d2 <- h_yr_boat %>%
+      mutate(Id = as.character(Id)) %>%
+      right_join(d1, by = "Id")
+
+    d3 <- d2 %>%
+      arrange(nwd_order) %>%
+      add_column(
+        distance_from_prev = NA,
+        cumu_distance = 0
+      )
+    d3$distance_from_prev[1] <- 0
+
+    for (i in 2:nrow(d3)) {
+      d3$distance_from_prev[i] <- distance_df %>%
+        filter(surveyId == d3$Id[i], name == d3$Id[i - 1]) %>%
+        dplyr::select(value) %>%
+        as.numeric()
+      d3$cumu_distance[i] <- sum(d3$distance_from_prev[1:i])
+      d3$boat <- b
+    }
+
+    tail(d3)
+
+    cat(
+      "max survey distance (km) \n",
+      max(d3$cumu_distance), "\n ",
+      "max inter-station distance (km) \n",
+      max(d3$distance_from_prev), "\n"
+    )
+
+    stat_list[[b]] <- data.frame(max_surv_dist = max(d3$cumu_distance), max_station_dist = max(d3$distance_from_prev), boat = b, year = yr_selection)
+
+    df_list[[b]] <- d3
+  }
+
+  length(df_list)
+  df_both <- do.call(rbind.data.frame, df_list)
+  stat_both <- do.call(rbind.data.frame, stat_list)
+
+  full_stat <- rbind(full_stat, stat_both)
 }
 
 
 
 full_stat2 <- full_stat %>%
-  add_row(max_surv_dist = 15073.2, max_station_dist = 299, year = 3000, boat = 1) %>%
-  add_row(max_surv_dist = 14023.6, max_station_dist = 311, year = 3000, boat = 2)
+  add_row(
+    max_surv_dist = 15073.2,
+    max_station_dist = 299,
+    year = 3000,
+    boat = 1
+  ) %>%
+  add_row(
+    max_surv_dist = 14023.6,
+    max_station_dist = 311,
+    year = 3000,
+    boat = 2
+  )
+
+png("Distance_Comparison_all.png")
+full_stat2 %>%
+  ggplot(aes(x = max_surv_dist, y = max_station_dist, colour = year)) +
+  geom_point(size = 3) +
+  xlab("Maximum total distance per boat (km)") +
+  ylab("Max distance between stations (km)") +
+  theme_classic(base_size = 16) +
+  theme(legend.position = "none")
+dev.off()
+
 
 png("Distance_Comparison_2boats.png")
-full_stat2 %>% 
-  filter(year %in% c(2001,2011,2013,2017,2019,3000)) %>%
-  ggplot(aes(x=max_surv_dist,y=max_station_dist,colour = year)) +geom_point(size=3) + xlab("Maximum total distance per boat (km)") + ylab("Max distance between stations (km)")  +theme_classic(base_size = 16)+theme(legend.position = 'none')
+full_stat2 %>%
+  filter(year %in% c(2001, 2011, 2013, 2017, 2019, 3000)) %>%
+  ggplot(aes(x = max_surv_dist, y = max_station_dist, colour = year)) +
+  geom_point(size = 3) +
+  xlab("Maximum total distance per boat (km)") +
+  ylab("Max distance between stations (km)") +
+  theme_classic(base_size = 16) +
+  theme(legend.position = "none")
 dev.off()
