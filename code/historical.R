@@ -300,3 +300,67 @@ for (i in 1:nrow(histtable)) {
 }
 
 write.csv(histtable, file = "historical2.csv", row.names = FALSE)
+
+
+# 7. Apply new method for station order to historical data ----------------
+# This is an attempt to make the new survey design more comparable to the historical ones-- apply the two methods to the sets of stations in the old survey designs and compare the distances between them.
+yrs_to_compare <- 
+
+h_yr <- h %>% filter(YEAR == yr_selection)
+
+depth_quants <- quantile(h_yr$BOTTOM_DEPTH)
+
+h_yr <- h %>%
+  # assign stations to boats by depth:
+  mutate(whichboat = case_when(BOTTOM_DEPTH  < depth_quants["25%"] ~ 1,
+                               BOTTOM_DEPTH  > depth_quants["25%"] &
+                               BOTTOM_DEPTH  < depth_quants["75%"] ~ 2,
+                               BOTTOM_DEPTH  > depth_quants["75%"] ~ 3))
+
+# A lot of this is code from sample_stations.R:
+nboats <- length(unique(h_yr$VESSEL))
+
+if (nboats == 2) {
+  print("2-boat solution")
+  nperboat <- nrow(survey_pts) / 2
+  if (!is.integer(nperboat)) {
+    n1 <- floor(nperboat)
+    n2 <- ceiling(nperboat)
+    n3 <- 0
+  } else {
+    (n1 <- n2 <- nperboat)
+    n3 <- 0
+  }
+  bb <- c(rep(1, times = n1), rep(2, times = n2))
+  survey_pts <- survey_pts %>%
+    #assign stations to boats by depth:
+    mutate(whichboat = ifelse(DEPTH_EFH < depth_quants["50%"], 1, 2))
+  #assign stations to boats randomly:
+  # mutate(whichboat = sample(x = bb, size = n1 + n2,replace = FALSE))
+}
+
+if (nboats == 3) {
+  print("3-boat solution")
+  nperboat <- nrow(survey_pts) / 3
+  if (!is.integer(nperboat)) {
+    n1 <- floor(nperboat)
+    n2 <- ceiling(nperboat)
+    n3 <- nrow(survey_pts) - (n1 + n2)
+  } else {
+    (n1 <- n2 <- n3 <- nperboat)
+  }
+  bb <- c(
+    rep(1, times = n1),
+    rep(2, times = n2),
+    rep(3, times = n3)
+  )
+  survey_pts <- survey_pts %>%
+    # assign stations to boats by depth:
+    mutate(whichboat = case_when(DEPTH_EFH < depth_quants["25%"] ~ 1,
+                                 DEPTH_EFH > depth_quants["25%"] &
+                                   DEPTH_EFH < depth_quants["75%"] ~ 2,
+                                 DEPTH_EFH > depth_quants["75%"] ~ 3))
+  # assign boats randomly: 
+  # mutate(whichboat = sample(x = bb, size = n1 + n2 + n3,
+  #                           replace = FALSE)) #randomly assign stations to boats 1 and 2
+}
