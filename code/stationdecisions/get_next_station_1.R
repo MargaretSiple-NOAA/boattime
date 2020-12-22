@@ -10,6 +10,12 @@ get_next_station_1 <- function(stationId = test.id,
                                distances = distance_df,
                                depths = Extrapolation_depths[sample_vec,c('Id','DEPTH_EFH')], 
                                longs = Extrapolation_depths[sample_vec,c('Id','Lon')]){
+  names(depths) <- c("Id","depth")
+  names(longs) <- c("Id", "lon")
+  
+  #print(head(depths))
+  #print(head(longs))
+  
   closest <- distances %>% 
     filter(surveyId == stationId) %>%
     filter(!name %in% already_sampled) %>%
@@ -21,7 +27,7 @@ get_next_station_1 <- function(stationId = test.id,
   furthest_w_unsampled <- longs %>%
     filter(Id != stationId) %>%
     filter(!Id %in% already_sampled) %>%
-    slice_min(longs[,2]) %>%
+    slice_min(lon) %>%
     dplyr::select(Id) %>%
     as.character()
   
@@ -29,10 +35,10 @@ get_next_station_1 <- function(stationId = test.id,
     selection = closest} else{
       depth1 <- depths %>% 
         filter(Id == closest) %>% 
-        dplyr::select(DEPTH_EFH)
+        dplyr::select(depth)
       depth2 <- depths %>% 
         filter(Id == furthest_w_unsampled) %>% 
-        dplyr::select(DEPTH_EFH)
+        dplyr::select(depth)
       
       ind <- which.min(c(depth1,depth2))
       selection <- c(closest,furthest_w_unsampled)[ind]
