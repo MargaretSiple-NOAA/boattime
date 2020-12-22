@@ -21,7 +21,7 @@ get_next_station_1 <- function(stationId = test.id,
   furthest_w_unsampled <- longs %>%
     filter(Id != stationId) %>%
     filter(!Id %in% already_sampled) %>%
-    slice_min(Lon) %>%
+    slice_min(longs[,2]) %>%
     dplyr::select(Id) %>%
     as.character()
   
