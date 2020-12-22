@@ -1,8 +1,8 @@
 #' Get distances between survey points
 #'
-#' @param survey_df A dataframe of sampling locations with Lon and Lat. Should already be ordered by date and hauljoin, such that the sites are in chronological order.
+#' @param survey_df A dataframe of sampling locations with Lon and Lat. Should already be ordered by date and hauljoin, so that the sites are in chronological order.
 #' @details If the dataframe is from a historical dataset, Id has to be added and lat/lon converted to title case. If it's from an optimized survey design, Id is the unique identifier for that location.
-#' @return a dataframe with the distances (in km) between each pair of points
+#' @return a dataframe with the distances (in km) between each pair of points. Essentially a longform version of the distance matrix.
 #' @export
 #'
 #' @examples
