@@ -19,17 +19,23 @@ source(here::here("code", "lengthen_pal.R"))
 
 # * Spatial grid ----------------------------------------------------------
 load(here::here(
-  "..", "Optimal_Allocation_GoA-master",
+  "..", "Optimal_Allocation_GoA",
   "data",
   "Extrapolation_depths.RData"
 ))
 # dataframe: Extrapolation_depths
 
 # * Load Optimization Results ---------------------------------------------
+# load(here::here(
+#   "..", "Optimal_Allocation_GoA",
+#   "model_11",
+#   "full_domain",
+#   "Spatiotemporal_Optimization",
+#   "optimization_knitted_results.RData"
+# ))
 load(here::here(
-  "..", "Optimal_Allocation_GoA-master",
-  "model_11",
-  "full_domain",
+  "..", "Optimal_Allocation_GoA",
+  "results",
   "Spatiotemporal_Optimization",
   "optimization_knitted_results.RData"
 ))
@@ -202,7 +208,7 @@ nearest_neighbor <- distance_df %>%
   add_column(year = "optimal")
 
 
-save(nearest_neighbor,file = "data/processed/nearest_neighbors_optimal.RData")
+#save(nearest_neighbor,file = "data/processed/nearest_neighbors_optimal2.RData")
 
 
 
