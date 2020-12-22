@@ -41,4 +41,5 @@ The total distance traveled for a survey should be comparable between a given op
 
 ### Figures
 The figures generated in this script are saved in the figures/ directory. They include: 
-1) Maps of the Gulf with the whole field, plus all the sites that have been sampled in a given allocation, and 2) The distribution of distances from each point to its nearest neighbor and second-nearest neighbor.
+1) Maps of the Gulf with the whole field, plus all the sites that have been sampled in a given allocation, and 
+2) The distribution of distances from each point to its nearest neighbor and second-nearest neighbor.
