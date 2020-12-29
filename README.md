@@ -5,12 +5,14 @@ This repository contains code for measuring distances between survey points and 
 
 This repository uses outputs from Zack's Optimal Allocation repository: https://github.com/zoyafuso-NOAA/Optimal_Allocation_GoA
 
+I keep a local clone of this repo in the same directory that contains this project folder, so to replicate it you need a clone of this directory (`boattime/`) and a clone of the optimization code (`Optimal_Allocation_GoA/`) in the same folder (or just change the directories).
+
 ### File structure
 | Folder           | Contents|
 | -------------    |:-------------|
 | `code/`          | Code for processing data, sampling from survey designs, and calculating                       distances |
 | `data/`          | Raw and processed historical data from previous cruises      |
-| `zack_outputs/`  | Files from @zoyafuso 's optimized survey design      |
+| `figures/`  | All figures, tech memo and otherwise      |
 
 *** 
 
@@ -36,13 +38,17 @@ These include (so far):
 
 1. **Proximity and depth** (get_next_station_1.R) Between closest and furthest west unsampled station, pick the deeper one
 2. **Traveling Salesperson Problem** (tsp.R) Stations are sampled to minimize the total distance traveled, starting at the westernmost station
-3. **Proximity and depth, split boats by depth** (get_next_station_1.R, with boats assigned to stations by depth before the station order is determined) Boats are split by depth: if it's a two-boat survey, one boat visits all sites below the median bottom depth, the other visits all sites above the median bottom depth. If there are three boats, the boats are split up into <25th, 25-50th, and >50th percentiles of depth. Then each boat visits stations according to Method 1.
+3. **Proximity and depth, split boats by depth** (get_next_station_1.R, with boats assigned to stations by depth before the station order is determined) Boats are split by depth: if it's a two-boat survey, one boat visits all sites below the median bottom depth, the other visits all sites above the median bottom depth. If there are three boats, the stations are split up into <25th, 25-50th, and >50th depth quantiles, with each boat visiting one depth range. Then each boat visits stations according to Method 1.
 
 ### Examine distances between stations
-The total distance traveled for a survey should be comparable between a given optimized design and the existing surveys. The sample_stations.R script gets a distance matrix for all the locations, and calculates the total distance traveled for a given order of locations. 
+The total distance traveled for a survey should be comparable between a given optimized design and the historical surveys. The sample_stations.R script calculates the total distance traveled for a given order of locations, based on a distance matrix between all stations. 
 
 ### Comparing historical surveys to the new design
-Because the historical surveys chose stations based on many more factors than we can consider for a yet-to-be-carried-out survey (weather, boat technical issues, decision to lane boats or not), I also used the survey points from historical surveys as if they were new. I.e., pick out the map of stations visited by each boat, and fed them into the same "station choice" algorithm that I used for the optimized design. 
+Because the historical surveys chose stations based on many more factors than we can consider for a hypothetical future survey (weather, boat technical issues, decision to "lane" boats or not), I also used the survey points from historical surveys as if they were new:
+
+1. Get the map of stations visited by each boat in a given year
+
+2. Treat this as a candidate design, feeding the coordinates into the same "station choice" algorithm used for the optimized design. 
 
 ### Figures
 The figures generated in this script are saved in the figures/ directory. They include: 
