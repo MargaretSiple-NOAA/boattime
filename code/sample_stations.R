@@ -26,19 +26,13 @@ load(here::here(
 # dataframe: Extrapolation_depths
 
 # * Load Optimization Results ---------------------------------------------
-# load(here::here(
-#   "..", "Optimal_Allocation_GoA",
-#   "model_11",
-#   "full_domain",
-#   "Spatiotemporal_Optimization",
-#   "optimization_knitted_results.RData"
-# ))
+
 load(here::here(
   "..", "Optimal_Allocation_GoA",
   "results",
-  "Spatiotemporal_Optimization",
-  "optimization_knitted_results.RData"
+  "MS_optimization_knitted_results.RData"
 ))
+
 # df's and lists: res_df, settings, strata_list, strata_stats_list
 
 # 3. Pick solution and get survey information -----------------------------
@@ -46,7 +40,9 @@ load(here::here(
 # Important! Number of boats.
 nboats <- 2
 
-idx <- settings$id[which(settings$strata == 15 & settings$boat == nboats)]
+idx <- settings$id[which(settings$strata == 5 & 
+                           settings$boat == nboats & 
+                           settings$domain == "district")]
 
 # * 3.2 Extract solution --------------------------------------------------
 strata_no <- as.numeric(as.character(strata_list[[idx]]$Stratum)) # unique stratum "ID"
