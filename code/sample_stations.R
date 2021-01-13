@@ -40,15 +40,15 @@ load(here::here(
 # Important! Number of boats.
 nboats <- 2
 
-idx <- settings$id[which(settings$strata == 5 & 
+idx <- which(settings$strata == 5 & 
                            settings$boat == nboats & 
-                           settings$domain == "district")]
+                           settings$domain == "district")
 
 # * 3.2 Extract solution --------------------------------------------------
-strata_no <- as.numeric(as.character(strata_list[[idx]]$Stratum)) # unique stratum "ID"
+strata_no <- 1:nrow(strata_list[[idx]]) # stratum "ID"
 nh <- strata_list[[idx]]$Allocation # allocated effort across strata (n of locations to visit)
 nstrata <- length(nh)
-solution <- res_df[, paste0("sol_", idx)] # Optimized solution
+solution <- res_df[, idx] # Optimized solution
 
 
 # * 3.3 Take a stratified random sample -----------------------------------
