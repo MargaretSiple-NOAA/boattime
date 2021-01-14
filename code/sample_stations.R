@@ -115,7 +115,8 @@ survey_pts <- Extrapolation_depths[
     "Id", "stratum", "trawlable",
     "DEPTH_EFH"
   )
-]
+] %>%
+  filter(trawlable == TRUE) #Per Stan: subset to trawlable stations
 
 field_sf <- sf::st_as_sf(
   x = Extrapolation_depths,
@@ -264,10 +265,11 @@ for(b in 1:nboats){
   boat_plan <- rep(NA, times = sample_size)
   boat_plan[1] <- western_end$Id
   
-  # Get Extrapolation depths rows just for that one boat
+  # Get Extrapolation depths rows just for this one boat
   edepths <- Extrapolation_depths %>% 
     filter(Id %in% surv_pts_boat$Id)
   
+  # Loop through stations, assigning a "next station" for each one
   for (i in 2:length(boat_plan)) {
     boat_plan[i] <- get_next_station_1(
       stationId = boat_plan[i - 1],
@@ -276,13 +278,14 @@ for(b in 1:nboats){
       longs = edepths[,c("Id","Lon")]
     )
   }
-  
   d1 <- data.frame(Id = boat_plan, nwd_order = 1:sample_size)
   
+  # Get locations/depths for all the stations
   d2 <- Extrapolation_depths %>%
     mutate(Id = as.character(Id)) %>%
     right_join(d1, Extrapolation_depths, by = "Id")
   
+  # Get cumulative distance etc for the boat plan
   d3 <- d2 %>%
     arrange(nwd_order) %>%
     add_column(
@@ -342,7 +345,8 @@ attempt1 <- ggplot() +
   geom_path(data = d3, aes(x = Lon, y = Lat, colour = nwd_order)) +
   geom_point(data = d3, aes(x = Lon, y = Lat, colour = nwd_order)) +
   scale_colour_viridis_c("Sampling order \n(1 = start of survey)") +
-  labs(title = "Nearest neighbor / furthest west")
+  labs(title = "Nearest neighbor / furthest west first",
+       subtitle = "Boats split by depth")
 
 attempt1
 
