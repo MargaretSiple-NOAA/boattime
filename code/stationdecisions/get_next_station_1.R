@@ -40,7 +40,7 @@ get_next_station_1 <- function(stationId = test.id,
         filter(Id == furthest_w_unsampled) %>% 
         dplyr::select(depth)
       
-      ind <- which.min(c(depth1,depth2))
+      ind <- which.max(c(depth1,depth2))
       selection <- c(closest,furthest_w_unsampled)[ind]
     }
   return(selection)
