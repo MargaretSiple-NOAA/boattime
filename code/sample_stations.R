@@ -115,8 +115,7 @@ survey_pts <- Extrapolation_depths[
     "Id", "stratum", "trawlable",
     "DEPTH_EFH"
   )
-] %>%
-  filter(trawlable == TRUE) #Per Stan: subset to trawlable stations
+] # we assume all stations are visited including "non-trawlable" ones.
 
 field_sf <- sf::st_as_sf(
   x = Extrapolation_depths,
@@ -197,6 +196,7 @@ rownames(distance_matrix_km) <-
 distance_df <- as.data.frame(distance_matrix_km) %>%
   add_column(surveyId = colnames(distance_matrix_km)) %>%
   pivot_longer(cols = colnames(distance_matrix_km))
+
 nearest_neighbor <- distance_df %>%
   arrange(value) %>%
   group_by(surveyId) %>%
@@ -285,7 +285,7 @@ for(b in 1:nboats){
     mutate(Id = as.character(Id)) %>%
     right_join(d1, Extrapolation_depths, by = "Id")
   
-  # Get cumulative distance etc for the boat plan
+  # Get cumulative distance etc. for the boat plan
   d3 <- d2 %>%
     arrange(nwd_order) %>%
     add_column(
@@ -346,7 +346,8 @@ attempt1 <- ggplot() +
   geom_point(data = d3, aes(x = Lon, y = Lat, colour = nwd_order)) +
   scale_colour_viridis_c("Sampling order \n(1 = start of survey)") +
   labs(title = "Nearest neighbor / furthest west first",
-       subtitle = "Boats split by depth")
+       subtitle = "Boats split by depth") +
+  ggsidekick::theme_sleek()
 
 attempt1
 
