@@ -151,64 +151,85 @@ years_vec <- c(1990, 1993, 1996, 1999, 2001, 2003, 2005, 2007, 2009, 2011, 2013,
 dists_allyrs <- years_vec %>%
   map_df(~ get_dist(.x))
 
-load(here::here("data", "processed", "nearest_neighbors_optimal.RData"))
+load(here::here("data", "processed", "nearest_neighbors_optimal2.RData"))
 dists_optimal <- nearest_neighbor
+# 
+# nlabs <- c(nn1 = "Nearest neighbor", nn2 = "Second-nearest neighbor")
+# 
+# b1 <- dists_allyrs %>%
+#   pivot_longer(cols = nn1:nn2) %>%
+#   filter(name == "nn1") %>%
+#   ggplot(aes(x = year, y = value, group = year)) +
+#   geom_boxplot() +
+#   ylab("Distance (km)") +
+#   facet_wrap(~name, labeller = labeller(name = nlabs))
+# 
+# b2 <- dists_allyrs %>%
+#   pivot_longer(cols = nn1:nn2) %>%
+#   filter(name == "nn2") %>%
+#   ggplot(aes(x = year, y = value, group = year)) +
+#   geom_boxplot() +
+#   ylab("Distance (km)") +
+#   facet_wrap(~name, labeller = labeller(name = nlabs))
+# 
+# 
+# o1 <- dists_optimal %>%
+#   pivot_longer(cols = nn1:nn2) %>%
+#   filter(name == "nn1") %>%
+#   ggplot(aes(x = year, y = value, group = year)) +
+#   geom_boxplot(color = "blue") +
+#   xlab("") +
+#   ylab("") +
+#   facet_wrap(~name, labeller = labeller(name = nlabs)) +
+#   theme(axis.text.y = element_blank())
+# 
+# o2 <- dists_optimal %>%
+#   pivot_longer(cols = nn1:nn2) %>%
+#   filter(name == "nn2") %>%
+#   ggplot(aes(x = year, y = value, group = year)) +
+#   geom_boxplot(color = "blue") +
+#   xlab("") +
+#   ylab("") +
+#   facet_wrap(~name, labeller = labeller(name = nlabs)) +
+#   theme(axis.text.y = element_blank())
+# 
+# 
+# # patchwork
+# combined <- b1 + o1 + b2 + o2
+# 
+# # Set y limits to same among patchwork combos
+# p_ranges_y <- c(
+#   ggplot_build(combined[[1]])$layout$panel_scales_y[[1]]$range$range,
+#   ggplot_build(combined[[2]])$layout$panel_scales_y[[1]]$range$range
+# )
+# combined + plot_layout(nrow = 1, widths = c(7, 1, 7, 1)) &
+#   ylim(min(p_ranges_y), max(p_ranges_y))
 
-nlabs <- c(nn1 = "Nearest neighbor", nn2 = "Second-nearest neighbor")
 
-b1 <- dists_allyrs %>%
-  pivot_longer(cols = nn1:nn2) %>%
-  filter(name == "nn1") %>%
-  ggplot(aes(x = year, y = value, group = year)) +
+# Easier: combine dataframes and plot accordingly. Optimized survey is entered as a future year.
+dfcomp <- dists_optimal %>% 
+  mutate(year = 2030) %>%
+  bind_rows(dists_allyrs) %>%
+  pivot_longer(cols=nn1:nn2) %>%
+  mutate(yearcol = case_when(year<2020 ~ 'Historical',
+                             year>2020 ~ 'Optimized'))
+
+facet.labs <- c("Distance to closest station (km)", "Distance to second-closest station (km)")
+names(facet.labs) <- c("nn1","nn2")
+
+dfcomp %>% 
+  ggplot(aes(x=year,y=value, group=year, colour = yearcol)) +
   geom_boxplot() +
-  ylab("Distance (km)") +
-  facet_wrap(~name, labeller = labeller(name = nlabs))
-
-b2 <- dists_allyrs %>%
-  pivot_longer(cols = nn1:nn2) %>%
-  filter(name == "nn2") %>%
-  ggplot(aes(x = year, y = value, group = year)) +
-  geom_boxplot() +
-  ylab("Distance (km)") +
-  facet_wrap(~name, labeller = labeller(name = nlabs))
-
-
-o1 <- dists_optimal %>%
-  pivot_longer(cols = nn1:nn2) %>%
-  filter(name == "nn1") %>%
-  ggplot(aes(x = year, y = value, group = year)) +
-  geom_boxplot(color = "blue") +
-  xlab("") +
-  ylab("") +
-  facet_wrap(~name, labeller = labeller(name = nlabs)) +
-  theme(axis.text.y = element_blank())
-
-o2 <- dists_optimal %>%
-  pivot_longer(cols = nn1:nn2) %>%
-  filter(name == "nn2") %>%
-  ggplot(aes(x = year, y = value, group = year)) +
-  geom_boxplot(color = "blue") +
-  xlab("") +
-  ylab("") +
-  facet_wrap(~name, labeller = labeller(name = nlabs)) +
-  theme(axis.text.y = element_blank())
-
-
-# patchwork
-combined <- b1 + o1 + b2 + o2
-
-# Set y limits to same among patchwork combos
-p_ranges_y <- c(
-  ggplot_build(combined[[1]])$layout$panel_scales_y[[1]]$range$range,
-  ggplot_build(combined[[2]])$layout$panel_scales_y[[1]]$range$range
-)
+  facet_wrap(~name, labeller = labeller(name = facet.labs)) +
+  ggthemes::theme_base(base_size = 10) +
+  xlab("Year") +
+  ylab("Distance") +
+  scale_colour_brewer("", palette = "Paired")
 
 
 # Save boxplots
 png("figures/Boxplot1.png", width = 8, height = 5, units = "in", res = 200)
 
-combined + plot_layout(nrow = 1, widths = c(7, 1, 7, 1)) &
-  ylim(min(p_ranges_y), max(p_ranges_y))
 
 dev.off()
 
