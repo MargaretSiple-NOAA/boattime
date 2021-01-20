@@ -73,7 +73,7 @@ get_map <- function(year, hauldata = h) {
     xlab("Longitude") +
     ylab("Latitude") +
     labs(title = paste("Year = ", year))
-
+  
   return(mapplot)
 }
 
@@ -94,17 +94,17 @@ get_dist <- function(year, hauldata = h) {
     crs = 4326, agr = "constant"
   )
   distance_matrix_km <- matrix(as.numeric(sf::st_distance(locs_sf) / 1000),
-    nrow = nrow(locs)
+                               nrow = nrow(locs)
   )
   print(nrow(locs))
   rownames(distance_matrix_km) <-
     colnames(distance_matrix_km) <-
     locs_sf$order
-
+  
   distance_df <- as.data.frame(distance_matrix_km) %>%
     add_column(surveyId = colnames(distance_matrix_km)) %>%
     pivot_longer(cols = colnames(distance_matrix_km))
-
+  
   nearest_neighbor <- distance_df %>%
     arrange(value) %>%
     group_by(surveyId) %>%
@@ -113,7 +113,7 @@ get_dist <- function(year, hauldata = h) {
       nn2 = nth(value, n = 3)
     ) %>%
     add_column(year = year)
-
+  
   return(nearest_neighbor)
 }
 
@@ -131,10 +131,10 @@ plot_dist <- function(nearest_df) {
     xlab("Distance (km)") +
     ylab("Frequency") +
     scale_fill_discrete("",
-      labels = c(
-        "Nearest station",
-        "Second-nearest station"
-      )
+                        labels = c(
+                          "Nearest station",
+                          "Second-nearest station"
+                        )
     ) +
     labs(title = paste0("Year = ", yrlab)) +
     theme(legend.position = "none") +
@@ -153,60 +153,9 @@ dists_allyrs <- years_vec %>%
 
 load(here::here("data", "processed", "nearest_neighbors_optimal2.RData"))
 dists_optimal <- nearest_neighbor
-# 
-# nlabs <- c(nn1 = "Nearest neighbor", nn2 = "Second-nearest neighbor")
-# 
-# b1 <- dists_allyrs %>%
-#   pivot_longer(cols = nn1:nn2) %>%
-#   filter(name == "nn1") %>%
-#   ggplot(aes(x = year, y = value, group = year)) +
-#   geom_boxplot() +
-#   ylab("Distance (km)") +
-#   facet_wrap(~name, labeller = labeller(name = nlabs))
-# 
-# b2 <- dists_allyrs %>%
-#   pivot_longer(cols = nn1:nn2) %>%
-#   filter(name == "nn2") %>%
-#   ggplot(aes(x = year, y = value, group = year)) +
-#   geom_boxplot() +
-#   ylab("Distance (km)") +
-#   facet_wrap(~name, labeller = labeller(name = nlabs))
-# 
-# 
-# o1 <- dists_optimal %>%
-#   pivot_longer(cols = nn1:nn2) %>%
-#   filter(name == "nn1") %>%
-#   ggplot(aes(x = year, y = value, group = year)) +
-#   geom_boxplot(color = "blue") +
-#   xlab("") +
-#   ylab("") +
-#   facet_wrap(~name, labeller = labeller(name = nlabs)) +
-#   theme(axis.text.y = element_blank())
-# 
-# o2 <- dists_optimal %>%
-#   pivot_longer(cols = nn1:nn2) %>%
-#   filter(name == "nn2") %>%
-#   ggplot(aes(x = year, y = value, group = year)) +
-#   geom_boxplot(color = "blue") +
-#   xlab("") +
-#   ylab("") +
-#   facet_wrap(~name, labeller = labeller(name = nlabs)) +
-#   theme(axis.text.y = element_blank())
-# 
-# 
-# # patchwork
-# combined <- b1 + o1 + b2 + o2
-# 
-# # Set y limits to same among patchwork combos
-# p_ranges_y <- c(
-#   ggplot_build(combined[[1]])$layout$panel_scales_y[[1]]$range$range,
-#   ggplot_build(combined[[2]])$layout$panel_scales_y[[1]]$range$range
-# )
-# combined + plot_layout(nrow = 1, widths = c(7, 1, 7, 1)) &
-#   ylim(min(p_ranges_y), max(p_ranges_y))
 
 
-# Easier: combine dataframes and plot accordingly. Optimized survey is entered as a future year.
+# Plot historical and surveys and optimized survey (entered as a future year)
 dfcomp <- dists_optimal %>% 
   mutate(year = 2030) %>%
   bind_rows(dists_allyrs) %>%
@@ -217,20 +166,21 @@ dfcomp <- dists_optimal %>%
 facet.labs <- c("Distance to closest station (km)", "Distance to second-closest station (km)")
 names(facet.labs) <- c("nn1","nn2")
 
-dfcomp %>% 
+boxplotfig <- dfcomp %>% 
   ggplot(aes(x=year,y=value, group=year, colour = yearcol)) +
   geom_boxplot() +
   facet_wrap(~name, labeller = labeller(name = facet.labs)) +
-  ggthemes::theme_base(base_size = 10) +
+  ggthemes::theme_base(base_size = 14) +
   xlab("Year") +
-  ylab("Distance") +
-  scale_colour_brewer("", palette = "Paired")
+  ylab("Distance (km)") +
+  scale_colour_brewer("", palette = "Paired") +
+  scale_x_continuous(breaks = c(1990, 2000, 2010, 2020, 2030),
+                     labels = c(paste(c(1990, 2000, 2010, 2020)), "Optimized"))
 
 
 # Save boxplots
-png("figures/Boxplot1.png", width = 8, height = 5, units = "in", res = 200)
-
-
+png("figures/Boxplot1.png", width = 9, height = 5, units = "in", res = 200)
+boxplotfig
 dev.off()
 
 
@@ -334,12 +284,12 @@ yrs_to_compare <- histtable %>%
 full_stat <- vector()
 
 for (y in 1:length(yrs_to_compare)) { #
-
+  
   yr_selection <- yrs_to_compare[y]
   h_yr <- h %>% filter(YEAR == yr_selection)
-
+  
   depth_quants <- quantile(h_yr$BOTTOM_DEPTH)
-
+  
   h_yr <- h_yr %>%
     # assign stations to boats by depth:
     mutate(whichboat = case_when(
@@ -348,10 +298,10 @@ for (y in 1:length(yrs_to_compare)) { #
         BOTTOM_DEPTH < depth_quants["75%"] ~ 2,
       BOTTOM_DEPTH > depth_quants["75%"] ~ 3
     ))
-
+  
   # A lot of this is code from sample_stations.R:
   nboats <- length(unique(h_yr$VESSEL))
-
+  
   if (nboats == 2) {
     print("2-boat solution")
     nperboat <- nrow(h_yr) / 2
@@ -371,7 +321,7 @@ for (y in 1:length(yrs_to_compare)) { #
     # assign stations to boats randomly:
     # mutate(whichboat = sample(x = bb, size = n1 + n2,replace = FALSE))
   }
-
+  
   if (nboats == 3) {
     print("3-boat solution")
     nperboat <- nrow(h_yr) / 3
@@ -400,55 +350,55 @@ for (y in 1:length(yrs_to_compare)) { #
     # mutate(whichboat = sample(x = bb, size = n1 + n2 + n3,
     #                           replace = FALSE)) #randomly assign stations to boats 1 and 2
   }
-
+  
   h_yr_sf <- sf::st_as_sf(
     x = h_yr,
     coords = c("lon", "lat"),
     crs = 4326, agr = "constant"
   )
-
+  
   # Pairwise distances between survey points in km
   # st_distance() provides distances in m
   distance_matrix_km <- matrix(as.numeric(st_distance(h_yr_sf) / 1000),
-    nrow = nrow(h_yr_sf)
+                               nrow = nrow(h_yr_sf)
   )
-
+  
   rownames(distance_matrix_km) <-
     colnames(distance_matrix_km) <-
     h_yr_sf$Id
-
+  
   distance_df <- as.data.frame(distance_matrix_km) %>%
     add_column(surveyId = colnames(distance_matrix_km)) %>%
     pivot_longer(cols = colnames(distance_matrix_km))
-
+  
   western_end <- h_yr %>%
     arrange(lon) %>%
     slice(1)
-
+  
   source(here::here("code", "stationdecisions", "get_next_station_1.R"))
-
+  
   test.id <- as.character(h_yr$Id[1])
-
+  
   df_list <- stat_list <- list()
-
-
+  
+  
   for (b in 1:nboats) {
     # Boat 1
     h_yr_boat <- h_yr %>%
       filter(whichboat == b)
-
+    
     western_end <- h_yr_boat %>%
       arrange(lon) %>%
       slice(1)
-
+    
     sample_size <- nrow(h_yr_boat)
     boat_plan <- rep(NA, times = sample_size)
     boat_plan[1] <- western_end$Id
-
+    
     # Get Extrapolation depths rows just for that one boat
     # edepths <- Extrapolation_depths %>%
     #   filter(Id %in% surv_pts_boat$Id)
-
+    
     for (i in 2:length(boat_plan)) {
       boat_plan[i] <- get_next_station_1(
         stationId = boat_plan[i - 1],
@@ -457,13 +407,13 @@ for (y in 1:length(yrs_to_compare)) { #
         longs = h_yr_boat[, c("Id", "lon")]
       )
     }
-
+    
     d1 <- data.frame(Id = boat_plan, nwd_order = 1:sample_size)
-
+    
     d2 <- h_yr_boat %>%
       mutate(Id = as.character(Id)) %>%
       right_join(d1, by = "Id")
-
+    
     d3 <- d2 %>%
       arrange(nwd_order) %>%
       add_column(
@@ -471,7 +421,7 @@ for (y in 1:length(yrs_to_compare)) { #
         cumu_distance = 0
       )
     d3$distance_from_prev[1] <- 0
-
+    
     for (i in 2:nrow(d3)) {
       d3$distance_from_prev[i] <- distance_df %>%
         filter(surveyId == d3$Id[i], name == d3$Id[i - 1]) %>%
@@ -480,25 +430,25 @@ for (y in 1:length(yrs_to_compare)) { #
       d3$cumu_distance[i] <- sum(d3$distance_from_prev[1:i])
       d3$boat <- b
     }
-
+    
     tail(d3)
-
+    
     cat(
       "max survey distance (km) \n",
       max(d3$cumu_distance), "\n ",
       "max inter-station distance (km) \n",
       max(d3$distance_from_prev), "\n"
     )
-
+    
     stat_list[[b]] <- data.frame(max_surv_dist = max(d3$cumu_distance), max_station_dist = max(d3$distance_from_prev), boat = b, year = yr_selection)
-
+    
     df_list[[b]] <- d3
   }
-
+  
   length(df_list)
   df_both <- do.call(rbind.data.frame, df_list)
   stat_both <- do.call(rbind.data.frame, stat_list)
-
+  
   full_stat <- rbind(full_stat, stat_both)
 }
 
