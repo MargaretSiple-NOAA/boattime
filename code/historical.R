@@ -197,14 +197,14 @@ wilcox.test(dists_allyrs$nn2, dists_optimal$nn2)
 # 5. Save figures ---------------------------------------------------------
 
 # Side by side maps and histograms
-for (i in 1:length(years_vec)) {
-  print(i)
-  unique_year <- years_vec[i]
-  map1 <- get_map(year = unique_year)
-  dist1 <- get_dist(year = unique_year)
-  plot1 <- plot_dist(nearest_df = dist1)
-  map1 + dist1 + plot_layout(ncol = 2, widths = c(2, 1))
-}
+# for (i in 1:length(years_vec)) {
+#   print(i)
+#   unique_year <- years_vec[i]
+#   map1 <- get_map(year = unique_year)
+#   dist1 <- get_dist(year = unique_year)
+#   plot1 <- plot_dist(nearest_df = dist1)
+#   map1 + dist1 + plot_layout(ncol = 2, widths = c(2, 1))
+# }
 
 
 # Get info for each of the previous years' cruises. How many boats? How many stations? Total number of survey days?
@@ -440,7 +440,10 @@ for (y in 1:length(yrs_to_compare)) { #
       max(d3$distance_from_prev), "\n"
     )
     
-    stat_list[[b]] <- data.frame(max_surv_dist = max(d3$cumu_distance), max_station_dist = max(d3$distance_from_prev), boat = b, year = yr_selection)
+    stat_list[[b]] <- data.frame(max_surv_dist = max(d3$cumu_distance),
+                                 max_station_dist = max(d3$distance_from_prev),
+                                 boat = b,
+                                 year = yr_selection)
     
     df_list[[b]] <- d3
   }
@@ -450,7 +453,7 @@ for (y in 1:length(yrs_to_compare)) { #
   stat_both <- do.call(rbind.data.frame, stat_list)
   
   full_stat <- rbind(full_stat, stat_both)
-}
+} #/year loop for historical data
 
 
 
