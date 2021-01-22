@@ -57,7 +57,7 @@ locations %>%
 get_map <- function(year, hauldata = h) {
   locs <- hauldata %>%
     filter(YEAR == year) %>%
-    distinct(STATIONID, lat, lon, END_LATITUDE, END_LONGITUDE, HAUL, DATE, HAULJOIN) %>%
+    distinct(STATIONID, lat, lon, END_LATITUDE, END_LONGITUDE, HAUL, DATE, HAULJOIN, VESSEL) %>%
     arrange(DATE, HAULJOIN) %>%
     rowid_to_column("order")
   locs_sf <- sf::st_as_sf(
@@ -65,6 +65,7 @@ get_map <- function(year, hauldata = h) {
     coords = c("lon", "lat"),
     crs = 4326, agr = "constant"
   )
+  print(head(locs))
   mapplot <- locs %>%
     ggplot() +
     geom_sf(data = locs_sf) +
@@ -72,12 +73,12 @@ get_map <- function(year, hauldata = h) {
     scale_colour_viridis_c("Sampling order", direction = 1) +
     xlab("Longitude") +
     ylab("Latitude") +
-    labs(title = paste("Year = ", year))
+    labs(title = paste("Year = ", year)) +
+    facet_wrap(~VESSEL, ncol = 1)
   
   return(mapplot)
 }
 
-# get_map(year = 1990)
 
 
 # 4. Plot the distribution of distances to closest points------------------
@@ -144,7 +145,6 @@ plot_dist <- function(nearest_df) {
 
 plot_dist(nearest_df = get_dist(1990))
 years_vec <- c(1990, 1993, 1996, 1999, 2001, 2003, 2005, 2007, 2009, 2011, 2013, 2015, 2017, 2019)
-
 
 # * 4.1 combine distance data ---------------------------------------------
 # This takes a minute
@@ -283,7 +283,7 @@ yrs_to_compare <- histtable %>%
 # Look thru yrs
 full_stat <- vector()
 
-for (y in 1:length(yrs_to_compare)) { #
+for (y in 1:length(yrs_to_compare)) { # this takes a while!
   
   yr_selection <- yrs_to_compare[y]
   h_yr <- h %>% filter(YEAR == yr_selection)
@@ -395,10 +395,6 @@ for (y in 1:length(yrs_to_compare)) { #
     boat_plan <- rep(NA, times = sample_size)
     boat_plan[1] <- western_end$Id
     
-    # Get Extrapolation depths rows just for that one boat
-    # edepths <- Extrapolation_depths %>%
-    #   filter(Id %in% surv_pts_boat$Id)
-    
     for (i in 2:length(boat_plan)) {
       boat_plan[i] <- get_next_station_1(
         stationId = boat_plan[i - 1],
@@ -456,17 +452,18 @@ for (y in 1:length(yrs_to_compare)) { #
 } #/year loop for historical data
 
 
-
+# Add the distances from the optimized design - these will vary w/ each realization
+# This info is contained in df_list from sample_stations.R
 full_stat2 <- full_stat %>%
   add_row(
-    max_surv_dist = 15073.2,
-    max_station_dist = 299,
+    max_surv_dist = 13337.41,
+    max_station_dist = 314,
     year = 3000,
     boat = 1
   ) %>%
   add_row(
-    max_surv_dist = 14023.6,
-    max_station_dist = 311,
+    max_surv_dist = 14495.82,
+    max_station_dist = 236,
     year = 3000,
     boat = 2
   )
@@ -492,3 +489,19 @@ full_stat2 %>%
   theme_classic(base_size = 16) +
   theme(legend.position = "none")
 dev.off()
+
+# Make the table for the tech memo
+wdf <-  full_stat2 %>%
+  pivot_wider(names_from = boat,
+              values_from = max_surv_dist:max_station_dist) %>%
+  dplyr::select(year, max_surv_dist_1:max_surv_dist_3)
+
+fulltable <- histtable %>%
+  dplyr::select(YEAR, nstations,
+                cumudistboat1,cumudistboat2,cumudistboat3) %>% 
+  right_join(wdf, by = c("YEAR" = "year")) %>%
+  as.data.frame()
+
+  
+
+write.csv(fulltable, "tables/TechMemoTable.csv", row.names = FALSE)
