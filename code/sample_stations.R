@@ -318,8 +318,6 @@ for(b in 1:nboats){
 length(df_list)
 df_both <- do.call(rbind.data.frame, df_list)
 
-# TO DO: 
-# Add function to plot stations and station order from dataframe d3
 
 # Plot survey path (2 vessels)
 
@@ -332,8 +330,9 @@ twoboats <- ggplot() +
   geom_path(data = df_list[[2]], aes(x = Lon, y = Lat, colour = nwd_order)) +
   geom_point(data = df_list[[2]], aes(x = Lon, y = Lat, colour = nwd_order)) +
   scale_colour_gradientn("Boat 2", colours = c("white", "red")) +
-  labs(title = "Nearest neighbor / furthest west") +
-  facet_wrap(~boat, nrow = 2)
+  #labs(title = "Nearest neighbor / furthest west") +
+  facet_wrap(~boat, nrow = 2) +
+  ggthemes::theme_base(base_size = 14)
 
 png("figures/ByDepth.png",width = 7, height = 8,units = "in",res = 200)
 twoboats
