@@ -230,8 +230,6 @@ points(western_end[, c("E_km", "N_km")], col = "red")
 
 source(here::here("code", "stationdecisions", "get_next_station_1.R"))
 
-test.id <- as.character(survey_sf$Id[1])
-
 x <- get_next_station_1(stationId = western_end$Id, already_sampled = NA)
 points(filter(survey_pts, Id == x)[, c("E_km", "N_km")], col = "blue")
 
@@ -248,8 +246,7 @@ points(filter(survey_pts, Id == z)[, c("E_km", "N_km")], col = "yellow")
 
 # Setup survey plan for multiple boats
 
-df_list <- list()
-
+  df_list <- list()
 for(b in 1:nboats){
 # Boat 1
   surv_pts_boat <- survey_pts %>% 
@@ -278,6 +275,7 @@ for(b in 1:nboats){
       longs = edepths[,c("Id","Lon")]
     )
   }
+  
   d1 <- data.frame(Id = boat_plan, nwd_order = 1:sample_size)
   
   # Get locations/depths for all the stations
@@ -319,8 +317,13 @@ length(df_list)
 df_both <- do.call(rbind.data.frame, df_list)
 
 
-# Plot survey path (2 vessels)
+df_both %>% 
+  group_by(boat) %>%
+  summarize(cumu_distance = max(cumu_distance))
 
+
+
+# Plot survey path (2 vessels)
 twoboats <- ggplot() +
   geom_sf(data = field_sf) +
   geom_path(data = df_list[[1]], aes(x = Lon, y = Lat, colour = nwd_order)) +
@@ -462,6 +465,6 @@ dev.off()
 # Other notes -------------------------------------------------------------
 # 1 knot = 1.852 km/hr
 
-# Need to figure out how to make raster + map in ggplot -------------------
+# Need to figure out how to make raster + map in ggplot
 # ggplot() + geom_sf(data = field_sf)
 # ggplot(goa_ras)  + geom_raster(aes(x=))
