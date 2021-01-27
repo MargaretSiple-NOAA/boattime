@@ -52,6 +52,7 @@ locations %>%
 
 
 
+
 # 3. Plot the order of the survey -----------------------------------------
 
 get_map <- function(year, hauldata = h) {
@@ -272,6 +273,14 @@ for (i in 1:nrow(histtable)) {
 
 write.csv(histtable, file = "historical2.csv", row.names = FALSE)
 
+# Summarize historical surveys for tech memo
+histtable %>% 
+  filter(nboats==2) %>% 
+  select(YEAR, ndays, nstations, nhauls, cumudistboat1,cumudistboat2) %>%
+  pivot_longer(cumudistboat1:cumudistboat2) %>%
+  group_by(name) %>%
+  summarize(mean(value), sd(value))
+
 
 # 7. Apply new method for station order to historical data ----------------
 # This is an attempt to make the new survey design more comparable to the historical ones-- apply the two methods to the sets of stations in the old survey designs and compare the distances between them.
@@ -452,7 +461,8 @@ for (y in 1:length(yrs_to_compare)) { # this takes a while!
 } #/year loop for historical data
 
 
-# Add the distances from the optimized design - these will vary w/ each realization
+# Add the distances from the optimized design - these will vary w/ each realization (see sample_stations_sims.R for simulations).
+
 # This info is contained in df_list from sample_stations.R
 full_stat2 <- full_stat %>%
   add_row(
