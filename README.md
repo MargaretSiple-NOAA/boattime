@@ -1,4 +1,4 @@
-# Timing and spacing for Gulf of Alaska survey design
+# Survey timing for Gulf of Alaska survey design
 ***
 ## Overview
 This repository contains code for measuring distances between survey points and approximating the time it will take to complete a particular survey design. 
