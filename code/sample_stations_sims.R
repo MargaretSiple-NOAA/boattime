@@ -1,4 +1,5 @@
 # Simulate several 2-boat realizations
+# This script is used to get standard deviations for the distances (several realizations of the same 2-boat solution)
 library(tidyverse)
 
 
@@ -26,11 +27,11 @@ load(here::here(
 # df's and lists: res_df, settings, strata_list, strata_stats_list
 
 # 3. Pick solution and get survey information -----------------------------
-# * 3.1 Query which solution to use based on 1-boat, 15 strata solution----
+# * 3.1 Query which solution to use based on 2-boat, district-level solution with three strata per district----
 # Important! Number of boats.
 nboats <- 2
 
-idx <- which(settings$strata == 5 & 
+idx <- which(settings$strata == 3 & 
                settings$boat == nboats & 
                settings$domain == "district")
 
